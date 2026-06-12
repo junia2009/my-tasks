@@ -42,8 +42,8 @@ export default defineConfig({
         cleanupOutdatedCaches: true,
       },
       manifest: {
-        name: '深海タスク',
-        short_name: '深海タスク',
+        name: 'Abyss — Task Management',
+        short_name: 'Abyss',
         description: 'スマホ特化・深海テーマのタスク管理',
         lang: 'ja',
         start_url: './',

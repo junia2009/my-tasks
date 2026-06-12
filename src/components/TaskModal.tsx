@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import type { ColumnId, Priority, Task } from '../types'
 import { COLUMNS, PRIORITY_LABELS } from '../types'
 
@@ -34,13 +34,28 @@ export function TaskModal({ task, defaultColumn, onSave, onDelete, onClose }: Pr
   const [tagsInput, setTagsInput] = useState(task?.tags.join(', ') ?? '')
   const [column, setColumn] = useState<ColumnId>(task?.column ?? defaultColumn)
 
+  // 初期値からの変更有無（未保存の入力があるか）
+  const isDirty =
+    title !== (task?.title ?? '') ||
+    description !== (task?.description ?? '') ||
+    priority !== (task?.priority ?? 'medium') ||
+    dueDate !== (task?.dueDate ?? '') ||
+    tagsInput !== (task?.tags.join(', ') ?? '') ||
+    column !== (task?.column ?? defaultColumn)
+
+  // 入力がある状態で閉じようとしたら破棄確認する
+  const requestClose = useCallback(() => {
+    if (isDirty && !window.confirm('入力内容を破棄して閉じますか？')) return
+    onClose()
+  }, [isDirty, onClose])
+
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') onClose()
+      if (e.key === 'Escape') requestClose()
     }
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
-  }, [onClose])
+  }, [requestClose])
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
@@ -56,7 +71,7 @@ export function TaskModal({ task, defaultColumn, onSave, onDelete, onClose }: Pr
   return (
     <div
       className="fixed inset-0 z-50 flex items-end justify-center bg-abyss-950/70 px-4 pt-4 pb-[calc(1rem+env(safe-area-inset-bottom))] backdrop-blur-sm animate-fade-in sm:items-center sm:p-4"
-      onMouseDown={onClose}
+      onMouseDown={requestClose}
     >
       <div
         className="max-h-[88dvh] w-full max-w-md animate-sheet-up overflow-y-auto rounded-3xl border border-white/10 bg-abyss-800/85 px-6 pt-5 pb-6 shadow-glow backdrop-blur-xl sm:px-7 sm:pt-6 sm:pb-7"
@@ -171,7 +186,7 @@ export function TaskModal({ task, defaultColumn, onSave, onDelete, onClose }: Pr
             <div className="flex gap-2">
               <button
                 type="button"
-                onClick={onClose}
+                onClick={requestClose}
                 className="rounded-xl px-4 py-2.5 text-sm font-medium text-slate-300 transition active:bg-white/5"
               >
                 キャンセル

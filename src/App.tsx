@@ -65,10 +65,33 @@ function seed(): Task[] {
   ]
 }
 
+const COLUMN_IDS: ColumnId[] = ['todo', 'in-progress', 'done']
+const PRIORITIES: Priority[] = ['high', 'medium', 'low']
+
+/** 壊れた・古い形式の保存データでも落ちないように各タスクを正規化する。 */
+function sanitizeTasks(raw: unknown): Task[] {
+  if (!Array.isArray(raw)) return seed()
+  return raw
+    .filter((t): t is Record<string, unknown> => typeof t === 'object' && t !== null)
+    .map((t, i) => ({
+      id: typeof t.id === 'string' ? t.id : crypto.randomUUID(),
+      title: typeof t.title === 'string' ? t.title : '',
+      description: typeof t.description === 'string' ? t.description : '',
+      priority: PRIORITIES.includes(t.priority as Priority) ? (t.priority as Priority) : 'medium',
+      dueDate: typeof t.dueDate === 'string' ? t.dueDate : '',
+      tags: Array.isArray(t.tags) ? t.tags.filter((x): x is string => typeof x === 'string') : [],
+      column: COLUMN_IDS.includes(t.column as ColumnId) ? (t.column as ColumnId) : 'todo',
+      order: typeof t.order === 'number' ? t.order : i,
+      createdAt: typeof t.createdAt === 'number' ? t.createdAt : Date.now(),
+    }))
+}
+
 type PriorityFilter = 'all' | Priority
 
 export default function App() {
-  const [tasks, setTasks] = useLocalStorage<Task[]>(STORAGE_KEY, seed())
+  const [tasks, setTasks] = useLocalStorage<Task[]>(STORAGE_KEY, seed, {
+    sanitize: sanitizeTasks,
+  })
 
   const [activeColumn, setActiveColumn] = useState<ColumnId>('todo')
   const [search, setSearch] = useState('')
@@ -358,6 +381,7 @@ export default function App() {
           collisionDetection={closestCenter}
           onDragStart={handleDragStart}
           onDragEnd={handleDragEnd}
+          onDragCancel={() => setActiveId(null)}
         >
           <main className="mt-3 flex min-h-0 flex-1 flex-col gap-2.5 overflow-y-auto pb-24">
             <SortableContext

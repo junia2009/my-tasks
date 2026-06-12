@@ -29,7 +29,7 @@ const columnTitle = (id: ColumnId) => COLUMNS.find((c) => c.id === id)?.title ??
 
 export function TaskCard({ task, onClick, onMove, overlay = false }: Props) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } =
-    useSortable({ id: task.id })
+    useSortable({ id: task.id, disabled: overlay })
 
   const style = overlay
     ? undefined
