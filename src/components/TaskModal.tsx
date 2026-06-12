@@ -59,7 +59,7 @@ export function TaskModal({ task, defaultColumn, onSave, onDelete, onClose }: Pr
       onMouseDown={onClose}
     >
       <div
-        className="max-h-[92dvh] w-full animate-sheet-up overflow-y-auto rounded-t-3xl border border-white/10 bg-abyss-800/80 p-5 pb-[calc(1.5rem+env(safe-area-inset-bottom))] shadow-glow backdrop-blur-xl sm:max-w-md sm:rounded-3xl sm:p-6 sm:pb-6"
+        className="max-h-[92dvh] w-full animate-sheet-up overflow-y-auto rounded-t-3xl border border-white/10 bg-abyss-800/80 px-6 pt-5 pb-[calc(2rem+env(safe-area-inset-bottom))] shadow-glow backdrop-blur-xl sm:max-w-md sm:rounded-3xl sm:px-7 sm:pt-6 sm:pb-7"
         onMouseDown={(e) => e.stopPropagation()}
       >
         {/* グラバー（モバイルのボトムシート感） */}
@@ -69,7 +69,7 @@ export function TaskModal({ task, defaultColumn, onSave, onDelete, onClose }: Pr
           {task ? 'タスクを編集' : '新しいタスク'}
         </h2>
 
-        <form onSubmit={handleSubmit} className="space-y-4">
+        <form onSubmit={handleSubmit} className="space-y-5">
           <div>
             <label className={labelClass}>タイトル</label>
             <input
@@ -95,7 +95,7 @@ export function TaskModal({ task, defaultColumn, onSave, onDelete, onClose }: Pr
           {/* ステータス（列の移動） */}
           <div>
             <label className={labelClass}>ステータス</label>
-            <div className="flex gap-1.5">
+            <div className="flex gap-2">
               {COLUMNS.map((c) => (
                 <button
                   key={c.id}
@@ -114,10 +114,10 @@ export function TaskModal({ task, defaultColumn, onSave, onDelete, onClose }: Pr
             </div>
           </div>
 
-          <div className="flex gap-3">
+          <div className="flex gap-4">
             <div className="flex-1">
               <label className={labelClass}>優先度</label>
-              <div className="flex gap-1.5">
+              <div className="flex gap-2">
                 {PRIORITIES.map((p) => (
                   <button
                     key={p}
