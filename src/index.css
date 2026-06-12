@@ -60,19 +60,13 @@ input[type='date']::-webkit-date-and-time-value {
   text-align: left;
 }
 
-/* 細くて控えめな深海カラーのスクロールバー */
+/* スクロールバーは非表示（スクロール自体は有効のまま）。UIをすっきり保つ。 */
 * {
-  scrollbar-width: thin;
-  scrollbar-color: rgba(52, 231, 211, 0.25) transparent;
+  scrollbar-width: none; /* Firefox */
+  -ms-overflow-style: none; /* 旧Edge/IE */
 }
 *::-webkit-scrollbar {
-  width: 6px;
-  height: 6px;
-}
-*::-webkit-scrollbar-thumb {
-  background: rgba(52, 231, 211, 0.22);
-  border-radius: 9999px;
-}
-*::-webkit-scrollbar-track {
-  background: transparent;
+  width: 0;
+  height: 0;
+  display: none; /* WebKit / iOS Safari */
 }
