@@ -43,6 +43,23 @@ body {
   -webkit-tap-highlight-color: rgba(52, 231, 211, 0.12);
 }
 
+/* iOS Safari の date 入力はネイティブ描画のまま固有幅を主張し w-full を
+   無視するため、appearance を無効化して通常のテキスト入力と同じ
+   ボックスモデルにする。これで親の幅にきっちり収まる。 */
+input[type='date'] {
+  -webkit-appearance: none;
+  appearance: none;
+  display: block;
+  width: 100%;
+  min-width: 0;
+  max-width: 100%;
+  min-height: 2.75rem; /* 値が空のとき iOS で高さが潰れるのを防ぐ */
+}
+/* appearance:none 後、iOS は値を中央寄せにするので左揃えへ戻す */
+input[type='date']::-webkit-date-and-time-value {
+  text-align: left;
+}
+
 /* 細くて控えめな深海カラーのスクロールバー */
 * {
   scrollbar-width: thin;
