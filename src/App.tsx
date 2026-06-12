@@ -355,7 +355,7 @@ export default function App() {
           onDragStart={handleDragStart}
           onDragEnd={handleDragEnd}
         >
-          <main className="mt-3 flex min-h-0 flex-1 flex-col gap-2.5 overflow-y-auto pb-32">
+          <main className="mt-3 flex min-h-0 flex-1 flex-col gap-2.5 overflow-y-auto pb-24">
             <SortableContext
               items={visibleTasks.map((t) => t.id)}
               strategy={verticalListSortingStrategy}
@@ -383,6 +383,17 @@ export default function App() {
             ) : null}
           </DragOverlay>
         </DndContext>
+
+        {/* バージョン情報・保存先の注記 */}
+        <footer className="shrink-0 pb-[calc(0.5rem+env(safe-area-inset-bottom))] pr-16 pt-1 text-[11px] leading-relaxed text-slate-500/70">
+          <span className="text-lume-soft/50">v{__APP_VERSION__}</span>
+          <span className="mx-1.5">·</span>
+          {__BUILD_DATE__}
+          <span className="mx-1.5">·</span>
+          {__COMMIT__}
+          <br />
+          データはこの端末内にのみ保存されます
+        </footer>
 
         {/* 追加ボタン（FAB） */}
         <button
