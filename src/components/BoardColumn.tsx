@@ -14,8 +14,8 @@ export function BoardColumn({ column, tasks, onCardClick, onAdd }: Props) {
   const { setNodeRef, isOver } = useDroppable({ id: column.id })
 
   return (
-    <div className="flex w-full flex-col rounded-xl bg-slate-200/60 dark:bg-slate-800/60 md:w-80 md:shrink-0">
-      <div className="flex items-center justify-between px-3 py-3">
+    <div className="flex h-full w-[82vw] shrink-0 snap-start flex-col rounded-xl bg-slate-200/60 dark:bg-slate-800/60 sm:w-72 sm:shrink md:w-80">
+      <div className="flex shrink-0 items-center justify-between px-3 py-2.5">
         <h2 className="flex items-center gap-2 text-sm font-bold text-slate-700 dark:text-slate-200">
           {column.title}
           <span className="rounded-full bg-slate-300 px-2 py-0.5 text-xs font-medium text-slate-600 dark:bg-slate-700 dark:text-slate-300">
@@ -25,8 +25,9 @@ export function BoardColumn({ column, tasks, onCardClick, onAdd }: Props) {
         <button
           type="button"
           onClick={() => onAdd(column.id)}
-          className="rounded-md px-2 py-1 text-lg leading-none text-slate-500 hover:bg-slate-300/70 dark:text-slate-400 dark:hover:bg-slate-700"
+          className="flex h-9 w-9 items-center justify-center rounded-md text-2xl leading-none text-slate-500 hover:bg-slate-300/70 dark:text-slate-400 dark:hover:bg-slate-700"
           title="タスクを追加"
+          aria-label={`${column.title} にタスクを追加`}
         >
           +
         </button>
@@ -35,7 +36,7 @@ export function BoardColumn({ column, tasks, onCardClick, onAdd }: Props) {
       <div
         ref={setNodeRef}
         className={
-          'flex min-h-[120px] flex-1 flex-col gap-2 rounded-lg px-3 pb-3 transition ' +
+          'flex min-h-0 flex-1 flex-col gap-2 overflow-y-auto rounded-lg px-3 pb-3 transition ' +
           (isOver ? 'bg-blue-100/50 dark:bg-blue-900/30' : '')
         }
       >

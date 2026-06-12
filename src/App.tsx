@@ -2,13 +2,16 @@ import { useMemo, useState } from 'react'
 import {
   DndContext,
   DragOverlay,
-  PointerSensor,
+  KeyboardSensor,
+  MouseSensor,
+  TouchSensor,
   closestCorners,
   useSensor,
   useSensors,
   type DragEndEvent,
   type DragStartEvent,
 } from '@dnd-kit/core'
+import { sortableKeyboardCoordinates } from '@dnd-kit/sortable'
 import { BoardColumn } from './components/BoardColumn'
 import { TaskCard } from './components/TaskCard'
 import { TaskModal } from './components/TaskModal'
@@ -73,7 +76,12 @@ export default function App() {
   const [activeId, setActiveId] = useState<string | null>(null)
 
   const sensors = useSensors(
-    useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
+    // Desktop: small drag threshold so clicks still register.
+    useSensor(MouseSensor, { activationConstraint: { distance: 5 } }),
+    // Touch: short press-and-hold on the handle starts a drag; quick taps and
+    // swipes pass through so the list still scrolls normally on iPhone.
+    useSensor(TouchSensor, { activationConstraint: { delay: 120, tolerance: 8 } }),
+    useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates }),
   )
 
   const allTags = useMemo(() => {
@@ -207,15 +215,15 @@ export default function App() {
   const filtersActive = search.trim() !== '' || priorityFilter !== 'all' || tagFilter !== 'all'
 
   return (
-    <div className="mx-auto flex h-full max-w-7xl flex-col px-4 py-5">
-      <header className="mb-4">
-        <div className="flex flex-wrap items-center justify-between gap-3">
-          <h1 className="text-xl font-bold text-slate-800 dark:text-slate-100">
+    <div className="mx-auto flex h-full max-w-7xl flex-col px-3 pb-[calc(0.5rem+env(safe-area-inset-bottom))] pt-4 sm:px-4">
+      <header className="mb-3 shrink-0">
+        <div className="flex items-center justify-between gap-2">
+          <h1 className="text-lg font-bold text-slate-800 dark:text-slate-100 sm:text-xl">
             📋 タスクボード
           </h1>
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2">
             {overdueCount > 0 && (
-              <span className="rounded-full bg-red-100 px-3 py-1 text-sm font-medium text-red-700 dark:bg-red-900/40 dark:text-red-300">
+              <span className="rounded-full bg-red-100 px-2.5 py-1 text-xs font-medium text-red-700 dark:bg-red-900/40 dark:text-red-300 sm:text-sm">
                 ⚠ 期限切れ {overdueCount} 件
               </span>
             )}
@@ -223,7 +231,7 @@ export default function App() {
               type="button"
               onClick={toggle}
               title={theme === 'dark' ? 'ライトモードに切替' : 'ダークモードに切替'}
-              className="rounded-lg border border-slate-300 px-2.5 py-1.5 text-sm hover:bg-slate-100 dark:border-slate-600 dark:hover:bg-slate-700"
+              className="flex h-10 w-10 items-center justify-center rounded-lg border border-slate-300 text-base hover:bg-slate-100 dark:border-slate-600 dark:hover:bg-slate-700"
             >
               {theme === 'dark' ? '☀️' : '🌙'}
             </button>
@@ -235,13 +243,13 @@ export default function App() {
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             placeholder="🔍 検索..."
-            className="w-44 rounded-lg border border-slate-300 px-3 py-1.5 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500 dark:border-slate-600 dark:bg-slate-800 dark:text-slate-100 dark:placeholder:text-slate-500"
+            className="h-10 min-w-[140px] flex-1 rounded-lg border border-slate-300 px-3 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500 dark:border-slate-600 dark:bg-slate-800 dark:text-slate-100 dark:placeholder:text-slate-500 sm:max-w-[220px]"
           />
           <select
             value={priorityFilter}
             onChange={(e) => setPriorityFilter(e.target.value as PriorityFilter)}
             title="優先度で絞り込み"
-            className="rounded-lg border border-slate-300 px-2 py-1.5 text-sm focus:border-blue-500 focus:outline-none dark:border-slate-600 dark:bg-slate-800 dark:text-slate-100"
+            className="h-10 rounded-lg border border-slate-300 px-2 text-sm focus:border-blue-500 focus:outline-none dark:border-slate-600 dark:bg-slate-800 dark:text-slate-100"
           >
             <option value="all">優先度: すべて</option>
             <option value="high">高</option>
@@ -252,7 +260,7 @@ export default function App() {
             value={tagFilter}
             onChange={(e) => setTagFilter(e.target.value)}
             title="タグで絞り込み"
-            className="rounded-lg border border-slate-300 px-2 py-1.5 text-sm focus:border-blue-500 focus:outline-none dark:border-slate-600 dark:bg-slate-800 dark:text-slate-100"
+            className="h-10 rounded-lg border border-slate-300 px-2 text-sm focus:border-blue-500 focus:outline-none dark:border-slate-600 dark:bg-slate-800 dark:text-slate-100"
           >
             <option value="all">タグ: すべて</option>
             {allTags.map((tag) => (
@@ -269,7 +277,7 @@ export default function App() {
                 setPriorityFilter('all')
                 setTagFilter('all')
               }}
-              className="rounded-lg px-2 py-1.5 text-sm text-slate-500 hover:bg-slate-200 dark:text-slate-400 dark:hover:bg-slate-700"
+              className="h-10 rounded-lg px-3 text-sm text-slate-500 hover:bg-slate-200 dark:text-slate-400 dark:hover:bg-slate-700"
             >
               クリア
             </button>
@@ -283,7 +291,7 @@ export default function App() {
         onDragStart={handleDragStart}
         onDragEnd={handleDragEnd}
       >
-        <div className="flex flex-1 flex-col gap-4 overflow-y-auto pb-4 md:flex-row md:overflow-x-auto">
+        <div className="-mx-3 flex min-h-0 flex-1 snap-x snap-mandatory gap-3 overflow-x-auto px-3 pb-2 sm:mx-0 sm:snap-none sm:px-0 md:gap-4">
           {COLUMNS.map((column) => (
             <BoardColumn
               key={column.id}
@@ -295,10 +303,10 @@ export default function App() {
           ))}
         </div>
 
-        <DragOverlay>
+        <DragOverlay dropAnimation={null}>
           {activeTask ? (
-            <div className="rotate-2">
-              <TaskCard task={activeTask} onClick={() => {}} />
+            <div className="w-72 max-w-[80vw] rotate-2">
+              <TaskCard task={activeTask} onClick={() => {}} overlay />
             </div>
           ) : null}
         </DragOverlay>
