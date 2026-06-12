@@ -31,13 +31,12 @@ export function TaskCard({ task, onClick, onMove, overlay = false }: Props) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } =
     useSortable({ id: task.id, disabled: overlay })
 
+  // transform / transition は @dnd-kit がドラッグ中に毎フレーム更新する動的値で、
+  // 静的な CSS クラスにはできない（ライブラリ標準のパターン）。それ以外の見た目は
+  // className 側に寄せている。
   const style = overlay
     ? undefined
-    : {
-        transform: CSS.Transform.toString(transform),
-        transition,
-        opacity: isDragging ? 0.35 : 1,
-      }
+    : { transform: CSS.Transform.toString(transform), transition }
 
   const isDone = task.column === 'done'
   const status = isDone ? 'normal' : dueStatus(task.dueDate)
@@ -62,7 +61,8 @@ export function TaskCard({ task, onClick, onMove, overlay = false }: Props) {
         'group relative flex shrink-0 overflow-hidden rounded-2xl border border-white/10 bg-white/[0.06] backdrop-blur-md transition ' +
         (overlay
           ? 'cursor-grabbing shadow-glow ring-1 ring-lume/40'
-          : 'cursor-pointer shadow-card active:bg-white/[0.1]')
+          : 'cursor-pointer shadow-card active:bg-white/[0.1]') +
+        (isDragging ? ' opacity-[0.35]' : '')
       }
     >
       {/* 左端の発光アクセント */}

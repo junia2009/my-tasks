@@ -70,3 +70,34 @@ input[type='date']::-webkit-date-and-time-value {
   height: 0;
   display: none; /* WebKit / iOS Safari */
 }
+
+/* 深海の背景演出（BackgroundFX）。動的値は Tailwind の arbitrary class で
+   個別に上書きするため、ここでは共通の見た目だけを定義する。 */
+.godrays {
+  background: conic-gradient(
+    from 180deg at 50% 0%,
+    transparent 0deg,
+    rgba(56, 224, 208, 0.1) 12deg,
+    transparent 26deg,
+    rgba(34, 211, 238, 0.08) 40deg,
+    transparent 54deg,
+    rgba(56, 224, 208, 0.1) 70deg,
+    transparent 88deg
+  );
+}
+.bubble {
+  position: absolute;
+  bottom: -20px;
+  border-radius: 9999px;
+  background: radial-gradient(
+    circle at 35% 30%,
+    rgba(180, 255, 248, 0.9),
+    rgba(52, 231, 211, 0.25) 55%,
+    transparent 70%
+  );
+  box-shadow: 0 0 8px rgba(52, 231, 211, 0.35);
+  /* duration / delay / --bubble-opacity は各 .bubble の arbitrary class で指定 */
+  animation-name: rise;
+  animation-timing-function: linear;
+  animation-iteration-count: infinite;
+}
