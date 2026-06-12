@@ -3,6 +3,11 @@ export default {
   content: ['./index.html', './src/**/*.{js,ts,jsx,tsx}'],
   theme: {
     extend: {
+      fontFamily: {
+        // Apple 端末では ui-serif = New York（上質なモダンセリフ）。
+        // 他環境では Georgia 等にフォールバック。
+        serif: ['ui-serif', 'Georgia', 'Hiragino Mincho ProN', 'serif'],
+      },
       colors: {
         // 深海パレット
         abyss: {
