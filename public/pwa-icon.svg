@@ -1,0 +1,47 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 512 512">
+  <defs>
+    <radialGradient id="sea" cx="50%" cy="18%" r="95%">
+      <stop offset="0%" stop-color="#0e3a5c"/>
+      <stop offset="45%" stop-color="#04101f"/>
+      <stop offset="100%" stop-color="#020912"/>
+    </radialGradient>
+    <linearGradient id="lume" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#7ff0e6"/>
+      <stop offset="100%" stop-color="#22d3ee"/>
+    </linearGradient>
+    <filter id="glow" x="-50%" y="-50%" width="200%" height="200%">
+      <feGaussianBlur stdDeviation="9" result="b"/>
+      <feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+  </defs>
+
+  <rect width="512" height="512" rx="112" fill="url(#sea)"/>
+
+  <!-- god rays -->
+  <g opacity="0.18" fill="#34e7d3">
+    <polygon points="256,0 300,300 212,300"/>
+    <polygon points="150,0 210,320 120,300"/>
+    <polygon points="362,0 392,300 312,320"/>
+  </g>
+
+  <!-- jellyfish (生物発光) -->
+  <g filter="url(#glow)">
+    <path d="M168 250c0-49 39-88 88-88s88 39 88 88c0 14-12 18-22 12-10-7-18-7-26 1-9 9-19 9-28 0-8-8-17-8-26-1-10 6-22 2-22-12z"
+          fill="url(#lume)" opacity="0.92"/>
+    <g stroke="url(#lume)" stroke-width="7" stroke-linecap="round" opacity="0.8" fill="none">
+      <path d="M196 268c-6 30 4 56-6 86"/>
+      <path d="M226 274c-3 34 2 60-4 96"/>
+      <path d="M256 276c0 36 0 64 0 100"/>
+      <path d="M286 274c3 34-2 60 4 96"/>
+      <path d="M316 268c6 30-4 56 6 86"/>
+    </g>
+  </g>
+
+  <!-- bubbles -->
+  <g fill="#b4fff8" opacity="0.85">
+    <circle cx="360" cy="150" r="9"/>
+    <circle cx="384" cy="110" r="6"/>
+    <circle cx="150" cy="180" r="7"/>
+    <circle cx="128" cy="132" r="5"/>
+  </g>
+</svg>

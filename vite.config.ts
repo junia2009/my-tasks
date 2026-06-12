@@ -2,6 +2,7 @@ import { execSync } from 'node:child_process'
 import { readFileSync } from 'node:fs'
 import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
+import { VitePWA } from 'vite-plugin-pwa'
 
 const pkg = JSON.parse(readFileSync(new URL('./package.json', import.meta.url), 'utf-8'))
 
@@ -25,5 +26,46 @@ export default defineConfig({
     __BUILD_DATE__: JSON.stringify(buildDate),
     __COMMIT__: JSON.stringify(commit),
   },
-  plugins: [react()],
+  plugins: [
+    react(),
+    VitePWA({
+      // registerType: 'prompt' は skipWaiting を呼ばない標準ライフサイクル。
+      // 新版はインストール後 waiting になり、アプリを閉じて開き直すと有効化される
+      // （＝1回目の起動で裏に取り込み、2回目の起動で更新が反映される）。
+      registerType: 'prompt',
+      injectRegister: false, // 登録は main.tsx で明示的に行う
+      includeAssets: ['favicon.svg', 'pwa-icon.svg'],
+      workbox: {
+        globPatterns: ['**/*.{js,css,html,svg,png,ico,woff2}'],
+        // index.html はキャッシュしつつ、起動毎に更新確認できるよう
+        // ナビゲーションは NetworkFirst 相当の更新フローに任せる。
+        cleanupOutdatedCaches: true,
+      },
+      manifest: {
+        name: '深海タスク',
+        short_name: '深海タスク',
+        description: 'スマホ特化・深海テーマのタスク管理',
+        lang: 'ja',
+        start_url: './',
+        scope: './',
+        display: 'standalone',
+        background_color: '#020912',
+        theme_color: '#020912',
+        icons: [
+          {
+            src: 'pwa-icon.svg',
+            sizes: 'any',
+            type: 'image/svg+xml',
+            purpose: 'any',
+          },
+          {
+            src: 'pwa-icon.svg',
+            sizes: 'any',
+            type: 'image/svg+xml',
+            purpose: 'maskable',
+          },
+        ],
+      },
+    }),
+  ],
 })
