@@ -1,25 +1,30 @@
-# 🌊 深海タスク（Abyss Tasks）
+# Abyss — Task Management
 
-スマホ縦画面に特化した、深海テーマのタスク管理ツールです。
+スマートフォン特化・深海テーマのタスク管理 PWA。  
 **データはすべてブラウザの localStorage に保存され、サーバーには一切送信されません。**
 
 ## 機能
 
-- **スマホ特化UI**: 未着手 / 進行中 / 完了 をセグメントで切替え、1列ずつ全幅表示
-- **深海デザイン**: 藍→漆黒のグラデーション、光の帯と立ち上る泡、生物発光カラーのグロー、フロストガラスのカード
-- **ステータス移動**: カードの「進行中 →」等のクイックボタン、または編集モーダルのステータス選択で確実に移動
-- **並べ替え**: 列内はドラッグハンドル（⋮⋮）で並べ替え（タッチでも誤操作なし）
-- **優先度**: 高 / 中 / 低（発光ドットで表示）
-- **期限日**: 期限切れ・当日・間近を色分け警告、ヘッダーに期限切れ件数を表示
-- **タグ**: カンマ区切りで複数タグを付与
-- **検索 / 絞り込み**: キーワード検索、優先度・タグでのフィルタ（折りたたみパネル）
+- **カンバン管理** — 未着手 / 進行中 / 完了 をセグメントタブで切り替え・1 列全幅表示
+- **深海デザイン** — トワイライトゾーングラデーション、神光（ゴッドレイ）、立ち上る泡、フロストガラスカード
+- **タスク編集** — タイトル・メモ・優先度（高/中/低）・期限日・タグを設定
+- **ステータス移動** — カードのクイックボタン、または編集モーダルのセレクターで操作
+- **ドラッグ＆ドロップ** — 専用ハンドル（⋮⋮）で列内並べ替え（タップ誤操作なし）
+- **フィルター／検索** — キーワード・優先度・タグで絞り込み
+- **PWA 対応** — ホーム画面追加でオフライン動作。Service Worker により 2 回起動で自動更新
+- **iOS 最適化** — safe-area 対応、フォーカスズーム抑止、viewport 高さ補正
 
 ## 技術スタック
 
-- React + TypeScript + Vite
-- Tailwind CSS（深海パレット・グロー・アンビエントアニメーション）
-- @dnd-kit（列内の並べ替え）
-- 永続化は localStorage のみ（バックエンドなし）
+| 分類 | 技術 |
+| --- | --- |
+| フレームワーク | React 19 + TypeScript |
+| ビルドツール | Vite 8 |
+| スタイリング | Tailwind CSS v3（カスタム abyss / lume パレット） |
+| ドラッグ＆ドロップ | @dnd-kit/core + @dnd-kit/sortable |
+| PWA | vite-plugin-pwa (Workbox) |
+| デプロイ | GitHub Pages (GitHub Actions) |
+| データ永続化 | localStorage のみ（バックエンドなし） |
 
 ## 開発
 
@@ -32,22 +37,12 @@ npm run preview  # ビルド結果をローカル確認
 
 ## デプロイ
 
-### 方法A: GitHub Pages（推奨・設定済み）
+`main` ブランチへ push すると `.github/workflows/deploy.yml` が自動でビルドし GitHub Pages へ公開します。
 
-1. GitHub に新規リポジトリを作成し、このコードを push する。
-2. リポジトリの **Settings → Pages → Build and deployment → Source** を
-   **「GitHub Actions」** に設定する。
-3. `main` ブランチへ push すると `.github/workflows/deploy.yml` が自動でビルド・公開する。
+初回のみリポジトリの **Settings → Pages → Source** を **「GitHub Actions」** に設定してください。
 
-> `vite.config.ts` の `base: './'` により、リポジトリ名のサブパス配下でも
-> そのまま動作します（設定変更不要）。
+> `vite.config.ts` の `base: './'` により、リポジトリ名のサブパス配下でもそのまま動作します。
 
-### 方法B: Firebase Hosting
+## データについて
 
-```bash
-npm install -g firebase-tools
-firebase login
-firebase init hosting   # public ディレクトリは「dist」、SPA は Yes
-npm run build
-firebase deploy
-```
+すべてのタスクデータはブラウザの localStorage に保存されます。クラウド同期・外部サービスへの送信は行いません。ブラウザのデータを削除するとタスクも消えます。
