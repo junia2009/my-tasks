@@ -217,11 +217,11 @@ export default function App() {
       <div className="relative z-0 mx-auto flex h-full max-w-md flex-col px-4 pt-[calc(0.75rem+env(safe-area-inset-top))]">
         <header className="shrink-0">
           <div className="flex items-center justify-between">
-            <div className="leading-none">
+            <div>
               <p className="mb-1 text-[10px] font-semibold uppercase tracking-[0.42em] text-lume-soft/40">
                 Abyss
               </p>
-              <h1 className="bg-gradient-to-r from-lume-soft via-lume to-lume-cyan bg-clip-text font-serif text-[26px] font-medium italic tracking-tight text-transparent drop-shadow-[0_0_12px_rgba(52,231,211,0.25)]">
+              <h1 className="bg-gradient-to-r from-lume-soft via-lume to-lume-cyan bg-clip-text pb-1 font-serif text-[26px] font-medium italic leading-[1.25] tracking-tight text-transparent drop-shadow-[0_0_12px_rgba(52,231,211,0.25)]">
                 Task Management
               </h1>
             </div>
