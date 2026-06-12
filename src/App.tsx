@@ -273,7 +273,7 @@ export default function App() {
 
           {/* 絞り込みパネル */}
           {showFilters && (
-            <div className="mt-3 space-y-3 rounded-2xl border border-white/10 bg-white/[0.04] p-3 backdrop-blur-md animate-fade-in">
+            <div className="mt-3 space-y-3 rounded-2xl border border-white/10 bg-white/[0.06] p-3 backdrop-blur-md animate-fade-in">
               <input
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
@@ -345,7 +345,7 @@ export default function App() {
           )}
 
           {/* ステータス切替（セグメント） */}
-          <div className="mt-3 flex gap-1 rounded-2xl border border-white/10 bg-white/[0.04] p-1 backdrop-blur-md">
+          <div className="mt-3 flex gap-1 rounded-2xl border border-white/10 bg-white/[0.06] p-1 backdrop-blur-md">
             {COLUMNS.map((c) => {
               const active = activeColumn === c.id
               return (
