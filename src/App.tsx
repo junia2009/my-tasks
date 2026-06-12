@@ -237,14 +237,7 @@ export default function App() {
   return (
     <>
       <BackgroundFX />
-      {/* iOS PWA: 新しいiOSはstatus-bar-styleメタを無視するため、アプリ側で
-          ステータスバー領域(safe-area-inset-top)に黒帯を描画して、ブラウザ
-          経由のホーム追加版と同じ見た目に統一する。通常ブラウザではinset=0で不可視。 */}
-      <div
-        aria-hidden
-        className="pointer-events-none fixed inset-x-0 top-0 z-40 h-[env(safe-area-inset-top)] bg-black"
-      />
-      <div className="relative z-0 mx-auto flex h-full max-w-md flex-col px-4 pt-[calc(1.25rem+env(safe-area-inset-top))]">
+      <div className="relative z-0 mx-auto flex h-full max-w-md flex-col px-4 pt-[calc(0.75rem+env(safe-area-inset-top))]">
         <header className="shrink-0">
           <div className="flex items-center justify-between">
             <div>
