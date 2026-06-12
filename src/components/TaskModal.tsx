@@ -55,14 +55,14 @@ export function TaskModal({ task, defaultColumn, onSave, onDelete, onClose }: Pr
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-end justify-center bg-abyss-950/70 backdrop-blur-sm animate-fade-in sm:items-center sm:p-4"
+      className="fixed inset-0 z-50 flex items-end justify-center bg-abyss-950/70 px-4 pt-4 pb-[calc(1rem+env(safe-area-inset-bottom))] backdrop-blur-sm animate-fade-in sm:items-center sm:p-4"
       onMouseDown={onClose}
     >
       <div
-        className="max-h-[92dvh] w-full animate-sheet-up overflow-y-auto rounded-t-3xl border border-white/10 bg-abyss-800/80 px-6 pt-5 pb-[calc(2rem+env(safe-area-inset-bottom))] shadow-glow backdrop-blur-xl sm:max-w-md sm:rounded-3xl sm:px-7 sm:pt-6 sm:pb-7"
+        className="max-h-[88dvh] w-full max-w-md animate-sheet-up overflow-y-auto rounded-3xl border border-white/10 bg-abyss-800/85 px-6 pt-5 pb-6 shadow-glow backdrop-blur-xl sm:px-7 sm:pt-6 sm:pb-7"
         onMouseDown={(e) => e.stopPropagation()}
       >
-        {/* グラバー（モバイルのボトムシート感） */}
+        {/* グラバー */}
         <div className="mx-auto mb-4 h-1 w-10 rounded-full bg-white/20 sm:hidden" />
 
         <h2 className="mb-5 text-lg font-semibold text-slate-50">
