@@ -115,7 +115,7 @@ export function TaskModal({ task, defaultColumn, onSave, onDelete, onClose }: Pr
           </div>
 
           <div className="flex gap-4">
-            <div className="flex-1">
+            <div className="min-w-0 flex-1">
               <label className={labelClass}>優先度</label>
               <div className="flex gap-2">
                 {PRIORITIES.map((p) => (
@@ -135,14 +135,14 @@ export function TaskModal({ task, defaultColumn, onSave, onDelete, onClose }: Pr
                 ))}
               </div>
             </div>
-            <div className="flex-1">
+            <div className="min-w-0 flex-1">
               <label className={labelClass}>期限</label>
               <input
                 type="date"
                 title="期限"
                 value={dueDate}
                 onChange={(e) => setDueDate(e.target.value)}
-                className={inputClass}
+                className={inputClass + ' min-w-0'}
               />
             </div>
           </div>
