@@ -13,6 +13,7 @@ import { BoardColumn } from './components/BoardColumn'
 import { TaskCard } from './components/TaskCard'
 import { TaskModal } from './components/TaskModal'
 import { useLocalStorage } from './useLocalStorage'
+import { useTheme } from './useTheme'
 import { COLUMNS, type ColumnId, type Priority, type Task } from './types'
 import { dueStatus, todayISO } from './dateUtils'
 
@@ -61,6 +62,7 @@ type PriorityFilter = 'all' | Priority
 
 export default function App() {
   const [tasks, setTasks] = useLocalStorage<Task[]>(STORAGE_KEY, seed())
+  const { theme, toggle } = useTheme()
 
   const [search, setSearch] = useState('')
   const [priorityFilter, setPriorityFilter] = useState<PriorityFilter>('all')
@@ -208,12 +210,24 @@ export default function App() {
     <div className="mx-auto flex h-full max-w-7xl flex-col px-4 py-5">
       <header className="mb-4">
         <div className="flex flex-wrap items-center justify-between gap-3">
-          <h1 className="text-xl font-bold text-slate-800">📋 タスクボード</h1>
-          {overdueCount > 0 && (
-            <span className="rounded-full bg-red-100 px-3 py-1 text-sm font-medium text-red-700">
-              ⚠ 期限切れ {overdueCount} 件
-            </span>
-          )}
+          <h1 className="text-xl font-bold text-slate-800 dark:text-slate-100">
+            📋 タスクボード
+          </h1>
+          <div className="flex items-center gap-3">
+            {overdueCount > 0 && (
+              <span className="rounded-full bg-red-100 px-3 py-1 text-sm font-medium text-red-700 dark:bg-red-900/40 dark:text-red-300">
+                ⚠ 期限切れ {overdueCount} 件
+              </span>
+            )}
+            <button
+              type="button"
+              onClick={toggle}
+              title={theme === 'dark' ? 'ライトモードに切替' : 'ダークモードに切替'}
+              className="rounded-lg border border-slate-300 px-2.5 py-1.5 text-sm hover:bg-slate-100 dark:border-slate-600 dark:hover:bg-slate-700"
+            >
+              {theme === 'dark' ? '☀️' : '🌙'}
+            </button>
+          </div>
         </div>
 
         <div className="mt-3 flex flex-wrap items-center gap-2">
@@ -221,13 +235,13 @@ export default function App() {
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             placeholder="🔍 検索..."
-            className="w-44 rounded-lg border border-slate-300 px-3 py-1.5 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+            className="w-44 rounded-lg border border-slate-300 px-3 py-1.5 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500 dark:border-slate-600 dark:bg-slate-800 dark:text-slate-100 dark:placeholder:text-slate-500"
           />
           <select
             value={priorityFilter}
             onChange={(e) => setPriorityFilter(e.target.value as PriorityFilter)}
             title="優先度で絞り込み"
-            className="rounded-lg border border-slate-300 px-2 py-1.5 text-sm focus:border-blue-500 focus:outline-none"
+            className="rounded-lg border border-slate-300 px-2 py-1.5 text-sm focus:border-blue-500 focus:outline-none dark:border-slate-600 dark:bg-slate-800 dark:text-slate-100"
           >
             <option value="all">優先度: すべて</option>
             <option value="high">高</option>
@@ -238,7 +252,7 @@ export default function App() {
             value={tagFilter}
             onChange={(e) => setTagFilter(e.target.value)}
             title="タグで絞り込み"
-            className="rounded-lg border border-slate-300 px-2 py-1.5 text-sm focus:border-blue-500 focus:outline-none"
+            className="rounded-lg border border-slate-300 px-2 py-1.5 text-sm focus:border-blue-500 focus:outline-none dark:border-slate-600 dark:bg-slate-800 dark:text-slate-100"
           >
             <option value="all">タグ: すべて</option>
             {allTags.map((tag) => (
@@ -255,7 +269,7 @@ export default function App() {
                 setPriorityFilter('all')
                 setTagFilter('all')
               }}
-              className="rounded-lg px-2 py-1.5 text-sm text-slate-500 hover:bg-slate-200"
+              className="rounded-lg px-2 py-1.5 text-sm text-slate-500 hover:bg-slate-200 dark:text-slate-400 dark:hover:bg-slate-700"
             >
               クリア
             </button>
@@ -299,7 +313,7 @@ export default function App() {
         />
       )}
 
-      <footer className="pt-2 text-center text-xs text-slate-400">
+      <footer className="pt-2 text-center text-xs text-slate-400 dark:text-slate-500">
         データはこのブラウザ内（localStorage）にのみ保存されます
       </footer>
     </div>

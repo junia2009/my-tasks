@@ -50,38 +50,38 @@ export function TaskModal({ task, onSave, onDelete, onClose }: Props) {
       onMouseDown={onClose}
     >
       <div
-        className="w-full max-w-md rounded-xl bg-white p-6 shadow-2xl"
+        className="w-full max-w-md rounded-xl bg-white p-6 shadow-2xl dark:bg-slate-800"
         onMouseDown={(e) => e.stopPropagation()}
       >
-        <h2 className="mb-4 text-lg font-bold text-slate-800">
+        <h2 className="mb-4 text-lg font-bold text-slate-800 dark:text-slate-100">
           {task ? 'タスクを編集' : '新しいタスク'}
         </h2>
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
-            <label className="mb-1 block text-sm font-medium text-slate-600">タイトル</label>
+            <label className="mb-1 block text-sm font-medium text-slate-600 dark:text-slate-300">タイトル</label>
             <input
               autoFocus
               value={title}
               onChange={(e) => setTitle(e.target.value)}
               placeholder="例: PR #42 をレビューする"
-              className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+              className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500 dark:border-slate-600 dark:bg-slate-700 dark:text-slate-100 dark:placeholder:text-slate-400 dark:[color-scheme:dark]"
             />
           </div>
 
           <div>
-            <label className="mb-1 block text-sm font-medium text-slate-600">説明</label>
+            <label className="mb-1 block text-sm font-medium text-slate-600 dark:text-slate-300">説明</label>
             <textarea
               value={description}
               onChange={(e) => setDescription(e.target.value)}
               rows={3}
               placeholder="詳細・メモ"
-              className="w-full resize-none rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+              className="w-full resize-none rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500 dark:border-slate-600 dark:bg-slate-700 dark:text-slate-100 dark:placeholder:text-slate-400"
             />
           </div>
 
           <div className="flex gap-4">
             <div className="flex-1">
-              <label className="mb-1 block text-sm font-medium text-slate-600">優先度</label>
+              <label className="mb-1 block text-sm font-medium text-slate-600 dark:text-slate-300">優先度</label>
               <div className="flex gap-1">
                 {PRIORITIES.map((p) => (
                   <button
@@ -91,8 +91,8 @@ export function TaskModal({ task, onSave, onDelete, onClose }: Props) {
                     className={
                       'flex-1 rounded-lg border px-2 py-2 text-sm font-medium transition ' +
                       (priority === p
-                        ? 'border-blue-500 bg-blue-50 text-blue-700'
-                        : 'border-slate-300 text-slate-500 hover:bg-slate-50')
+                        ? 'border-blue-500 bg-blue-50 text-blue-700 dark:bg-blue-900/40 dark:text-blue-300'
+                        : 'border-slate-300 text-slate-500 hover:bg-slate-50 dark:border-slate-600 dark:text-slate-400 dark:hover:bg-slate-700')
                     }
                   >
                     {PRIORITY_LABELS[p]}
@@ -101,25 +101,26 @@ export function TaskModal({ task, onSave, onDelete, onClose }: Props) {
               </div>
             </div>
             <div className="flex-1">
-              <label className="mb-1 block text-sm font-medium text-slate-600">期限</label>
+              <label className="mb-1 block text-sm font-medium text-slate-600 dark:text-slate-300">期限</label>
               <input
                 type="date"
+                title="期限"
                 value={dueDate}
                 onChange={(e) => setDueDate(e.target.value)}
-                className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500 dark:border-slate-600 dark:bg-slate-700 dark:text-slate-100 dark:placeholder:text-slate-400 dark:[color-scheme:dark]"
               />
             </div>
           </div>
 
           <div>
-            <label className="mb-1 block text-sm font-medium text-slate-600">
+            <label className="mb-1 block text-sm font-medium text-slate-600 dark:text-slate-300">
               タグ（カンマ区切り）
             </label>
             <input
               value={tagsInput}
               onChange={(e) => setTagsInput(e.target.value)}
               placeholder="例: backend, urgent"
-              className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+              className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500 dark:border-slate-600 dark:bg-slate-700 dark:text-slate-100 dark:placeholder:text-slate-400 dark:[color-scheme:dark]"
             />
           </div>
 
@@ -128,7 +129,7 @@ export function TaskModal({ task, onSave, onDelete, onClose }: Props) {
               <button
                 type="button"
                 onClick={onDelete}
-                className="rounded-lg px-3 py-2 text-sm font-medium text-red-600 hover:bg-red-50"
+                className="rounded-lg px-3 py-2 text-sm font-medium text-red-600 hover:bg-red-50 dark:text-red-400 dark:hover:bg-red-900/30"
               >
                 削除
               </button>
@@ -139,7 +140,7 @@ export function TaskModal({ task, onSave, onDelete, onClose }: Props) {
               <button
                 type="button"
                 onClick={onClose}
-                className="rounded-lg px-4 py-2 text-sm font-medium text-slate-600 hover:bg-slate-100"
+                className="rounded-lg px-4 py-2 text-sm font-medium text-slate-600 hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-slate-700"
               >
                 キャンセル
               </button>

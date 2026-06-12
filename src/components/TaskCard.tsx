@@ -49,20 +49,22 @@ export function TaskCard({ task, onClick }: Props) {
       {...attributes}
       {...listeners}
       onClick={() => onClick(task)}
-      className="group relative cursor-grab overflow-hidden rounded-lg border border-slate-200 bg-white p-3 shadow-sm transition hover:shadow-md active:cursor-grabbing"
+      className="group relative cursor-grab overflow-hidden rounded-lg border border-slate-200 bg-white p-3 shadow-sm transition hover:shadow-md active:cursor-grabbing dark:border-slate-700 dark:bg-slate-800"
     >
       <div className={'absolute inset-y-0 left-0 w-1 ' + PRIORITY_BAR[task.priority]} />
       <div className="pl-1.5">
         <p
           className={
-            'text-sm font-medium text-slate-800 ' +
+            'text-sm font-medium text-slate-800 dark:text-slate-100 ' +
             (task.column === 'done' ? 'line-through opacity-60' : '')
           }
         >
           {task.title}
         </p>
         {task.description && (
-          <p className="mt-1 line-clamp-2 text-xs text-slate-500">{task.description}</p>
+          <p className="mt-1 line-clamp-2 text-xs text-slate-500 dark:text-slate-400">
+            {task.description}
+          </p>
         )}
 
         <div className="mt-2 flex flex-wrap items-center gap-1.5">
