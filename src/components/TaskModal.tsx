@@ -114,37 +114,36 @@ export function TaskModal({ task, defaultColumn, onSave, onDelete, onClose }: Pr
             </div>
           </div>
 
-          <div className="flex gap-4">
-            <div className="min-w-0 flex-1">
-              <label className={labelClass}>優先度</label>
-              <div className="flex gap-2">
-                {PRIORITIES.map((p) => (
-                  <button
-                    key={p}
-                    type="button"
-                    onClick={() => setPriority(p)}
-                    className={
-                      'flex-1 rounded-xl border px-2 py-2.5 text-sm font-medium transition ' +
-                      (priority === p
-                        ? 'border-lume/50 bg-lume/15 text-lume-soft shadow-glow-sm'
-                        : 'border-white/10 text-slate-400 active:bg-white/5')
-                    }
-                  >
-                    {PRIORITY_LABELS[p]}
-                  </button>
-                ))}
-              </div>
+          <div>
+            <label className={labelClass}>優先度</label>
+            <div className="flex gap-2">
+              {PRIORITIES.map((p) => (
+                <button
+                  key={p}
+                  type="button"
+                  onClick={() => setPriority(p)}
+                  className={
+                    'flex-1 rounded-xl border px-2 py-2.5 text-sm font-medium transition ' +
+                    (priority === p
+                      ? 'border-lume/50 bg-lume/15 text-lume-soft shadow-glow-sm'
+                      : 'border-white/10 text-slate-400 active:bg-white/5')
+                  }
+                >
+                  {PRIORITY_LABELS[p]}
+                </button>
+              ))}
             </div>
-            <div className="min-w-0 flex-1">
-              <label className={labelClass}>期限</label>
-              <input
-                type="date"
-                title="期限"
-                value={dueDate}
-                onChange={(e) => setDueDate(e.target.value)}
-                className={inputClass + ' min-w-0'}
-              />
-            </div>
+          </div>
+
+          <div>
+            <label className={labelClass}>期限</label>
+            <input
+              type="date"
+              title="期限"
+              value={dueDate}
+              onChange={(e) => setDueDate(e.target.value)}
+              className={inputClass}
+            />
           </div>
 
           <div>
