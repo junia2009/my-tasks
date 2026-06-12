@@ -142,7 +142,7 @@ export function TaskModal({ task, defaultColumn, onSave, onDelete, onClose }: Pr
               title="期限"
               value={dueDate}
               onChange={(e) => setDueDate(e.target.value)}
-              className={inputClass}
+              className={inputClass + ' block min-w-0 max-w-full'}
             />
           </div>
 
