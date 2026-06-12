@@ -28,13 +28,14 @@ body {
   -moz-osx-font-smoothing: grayscale;
 }
 
-/* iOS Safari はフォーカス時にフォントが16px未満だとズームしてしまうため、
-   タッチ幅では16pxを強制してレイアウトの跳ねを防ぐ。 */
+/* iOS Safari はフォーカス時にフォントが16px未満だとズームしてしまう。
+   Tailwind の text-sm 等(クラス指定=高い詳細度)に勝つよう !important で
+   16px を強制し、フォーカス時のズーム/レイアウト跳ねを防ぐ。 */
 @media (max-width: 640px) {
   input,
   textarea,
   select {
-    font-size: 16px;
+    font-size: 16px !important;
   }
 }
 
