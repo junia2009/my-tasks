@@ -22,10 +22,22 @@ export interface Column {
 }
 
 export const COLUMNS: Column[] = [
-  { id: 'todo', title: 'To Do' },
-  { id: 'in-progress', title: 'In Progress' },
-  { id: 'done', title: 'Done' },
+  { id: 'todo', title: '未着手' },
+  { id: 'in-progress', title: '進行中' },
+  { id: 'done', title: '完了' },
 ]
+
+/** ステータスを1つ進める／戻す先（深海の流れ：未着手→進行中→完了）。 */
+export const NEXT_COLUMN: Record<ColumnId, ColumnId | null> = {
+  todo: 'in-progress',
+  'in-progress': 'done',
+  done: null,
+}
+export const PREV_COLUMN: Record<ColumnId, ColumnId | null> = {
+  todo: null,
+  'in-progress': 'todo',
+  done: 'in-progress',
+}
 
 export const PRIORITY_LABELS: Record<Priority, string> = {
   high: '高',

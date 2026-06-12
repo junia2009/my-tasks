@@ -5,18 +5,22 @@ import {
   KeyboardSensor,
   MouseSensor,
   TouchSensor,
-  closestCorners,
+  closestCenter,
   useSensor,
   useSensors,
   type DragEndEvent,
   type DragStartEvent,
 } from '@dnd-kit/core'
-import { sortableKeyboardCoordinates } from '@dnd-kit/sortable'
-import { BoardColumn } from './components/BoardColumn'
+import {
+  SortableContext,
+  arrayMove,
+  sortableKeyboardCoordinates,
+  verticalListSortingStrategy,
+} from '@dnd-kit/sortable'
+import { BackgroundFX } from './components/BackgroundFX'
 import { TaskCard } from './components/TaskCard'
 import { TaskModal } from './components/TaskModal'
 import { useLocalStorage } from './useLocalStorage'
-import { useTheme } from './useTheme'
 import { COLUMNS, type ColumnId, type Priority, type Task } from './types'
 import { dueStatus, todayISO } from './dateUtils'
 
@@ -27,8 +31,8 @@ function seed(): Task[] {
   return [
     {
       id: crypto.randomUUID(),
-      title: 'ようこそ！カードをクリックして編集できます',
-      description: 'カードはドラッグ＆ドロップで列の間を移動できます。',
+      title: 'ようこそ。タップで編集、⋮⋮で並べ替え',
+      description: '「進行中 →」ボタンで次のステータスへ送れます。',
       priority: 'medium',
       dueDate: '',
       tags: ['ヒント'],
@@ -65,21 +69,19 @@ type PriorityFilter = 'all' | Priority
 
 export default function App() {
   const [tasks, setTasks] = useLocalStorage<Task[]>(STORAGE_KEY, seed())
-  const { theme, toggle } = useTheme()
 
+  const [activeColumn, setActiveColumn] = useState<ColumnId>('todo')
   const [search, setSearch] = useState('')
   const [priorityFilter, setPriorityFilter] = useState<PriorityFilter>('all')
   const [tagFilter, setTagFilter] = useState<string>('all')
+  const [showFilters, setShowFilters] = useState(false)
 
+  const [modalOpen, setModalOpen] = useState(false)
   const [modalTask, setModalTask] = useState<Task | null>(null)
-  const [modalColumn, setModalColumn] = useState<ColumnId | null>(null)
   const [activeId, setActiveId] = useState<string | null>(null)
 
   const sensors = useSensors(
-    // Desktop: small drag threshold so clicks still register.
     useSensor(MouseSensor, { activationConstraint: { distance: 5 } }),
-    // Touch: short press-and-hold on the handle starts a drag; quick taps and
-    // swipes pass through so the list still scrolls normally on iPhone.
     useSensor(TouchSensor, { activationConstraint: { delay: 120, tolerance: 8 } }),
     useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates }),
   )
@@ -91,38 +93,58 @@ export default function App() {
   }, [tasks])
 
   const overdueCount = useMemo(
-    () =>
-      tasks.filter((t) => t.column !== 'done' && dueStatus(t.dueDate) === 'overdue').length,
+    () => tasks.filter((t) => t.column !== 'done' && dueStatus(t.dueDate) === 'overdue').length,
     [tasks],
   )
 
-  const filtered = useMemo(() => {
+  const matches = useMemo(() => {
     const q = search.trim().toLowerCase()
-    return tasks.filter((t) => {
+    return (t: Task) => {
       if (priorityFilter !== 'all' && t.priority !== priorityFilter) return false
       if (tagFilter !== 'all' && !t.tags.includes(tagFilter)) return false
       if (q) {
-        const haystack = (t.title + ' ' + t.description + ' ' + t.tags.join(' ')).toLowerCase()
-        if (!haystack.includes(q)) return false
+        const hay = (t.title + ' ' + t.description + ' ' + t.tags.join(' ')).toLowerCase()
+        if (!hay.includes(q)) return false
       }
       return true
-    })
-  }, [tasks, search, priorityFilter, tagFilter])
+    }
+  }, [search, priorityFilter, tagFilter])
 
-  const tasksByColumn = useMemo(() => {
-    const map: Record<ColumnId, Task[]> = { todo: [], 'in-progress': [], done: [] }
-    filtered.forEach((t) => map[t.column].push(t))
-    ;(Object.keys(map) as ColumnId[]).forEach((col) =>
-      map[col].sort((a, b) => a.order - b.order),
-    )
+  const counts = useMemo(() => {
+    const map: Record<ColumnId, number> = { todo: 0, 'in-progress': 0, done: 0 }
+    tasks.forEach((t) => {
+      if (matches(t)) map[t.column]++
+    })
     return map
-  }, [filtered])
+  }, [tasks, matches])
+
+  const visibleTasks = useMemo(
+    () =>
+      tasks
+        .filter((t) => t.column === activeColumn && matches(t))
+        .sort((a, b) => a.order - b.order),
+    [tasks, activeColumn, matches],
+  )
 
   const activeTask = activeId ? tasks.find((t) => t.id === activeId) ?? null : null
+  const filtersActive =
+    search.trim() !== '' || priorityFilter !== 'all' || tagFilter !== 'all'
 
-  function openCreate(columnId: ColumnId) {
-    setModalColumn(columnId)
+  function openCreate() {
     setModalTask(null)
+    setModalOpen(true)
+  }
+  function openEdit(task: Task) {
+    setModalTask(task)
+    setModalOpen(true)
+  }
+  function closeModal() {
+    setModalOpen(false)
+    setModalTask(null)
+  }
+
+  function endOrder(column: ColumnId, list: Task[]) {
+    return list.filter((t) => t.column === column).reduce((m, t) => Math.max(m, t.order), -1) + 1
   }
 
   function handleSave(data: {
@@ -131,199 +153,257 @@ export default function App() {
     priority: Priority
     dueDate: string
     tags: string[]
+    column: ColumnId
   }) {
-    if (modalTask) {
-      setTasks((prev) =>
-        prev.map((t) => (t.id === modalTask.id ? { ...t, ...data } : t)),
-      )
-    } else if (modalColumn) {
-      const maxOrder = tasks
-        .filter((t) => t.column === modalColumn)
-        .reduce((m, t) => Math.max(m, t.order), -1)
+    setTasks((prev) => {
+      if (modalTask) {
+        const movedColumn = data.column !== modalTask.column
+        return prev.map((t) =>
+          t.id === modalTask.id
+            ? { ...t, ...data, order: movedColumn ? endOrder(data.column, prev) : t.order }
+            : t,
+        )
+      }
       const newTask: Task = {
         id: crypto.randomUUID(),
         ...data,
-        column: modalColumn,
-        order: maxOrder + 1,
+        order: endOrder(data.column, prev),
         createdAt: Date.now(),
       }
-      setTasks((prev) => [...prev, newTask])
-    }
+      return [...prev, newTask]
+    })
+    // 新規作成した列へ自動で切り替え
+    if (!modalTask) setActiveColumn(data.column)
     closeModal()
   }
 
   function handleDelete() {
-    if (modalTask) {
-      setTasks((prev) => prev.filter((t) => t.id !== modalTask.id))
-    }
+    if (modalTask) setTasks((prev) => prev.filter((t) => t.id !== modalTask.id))
     closeModal()
   }
 
-  function closeModal() {
-    setModalTask(null)
-    setModalColumn(null)
+  function moveTask(task: Task, target: ColumnId) {
+    setTasks((prev) =>
+      prev.map((t) =>
+        t.id === task.id ? { ...t, column: target, order: endOrder(target, prev) } : t,
+      ),
+    )
   }
 
-  function handleDragStart(event: DragStartEvent) {
-    setActiveId(event.active.id as string)
+  function handleDragStart(e: DragStartEvent) {
+    setActiveId(e.active.id as string)
   }
 
-  function handleDragEnd(event: DragEndEvent) {
-    const { active, over } = event
+  function handleDragEnd(e: DragEndEvent) {
+    const { active, over } = e
     setActiveId(null)
-    if (!over) return
-    const activeTaskId = active.id as string
-    const overId = over.id as string
-    if (activeTaskId === overId) return
-
+    if (!over || active.id === over.id) return
     setTasks((prev) => {
-      const dragged = prev.find((t) => t.id === activeTaskId)
-      if (!dragged) return prev
-
-      const overTask = prev.find((t) => t.id === overId)
-      const targetColumn: ColumnId = overTask
-        ? overTask.column
-        : COLUMNS.some((c) => c.id === overId)
-          ? (overId as ColumnId)
-          : dragged.column
-
-      const columnIds = prev
-        .filter((t) => t.column === targetColumn && t.id !== activeTaskId)
+      const colTasks = prev
+        .filter((t) => t.column === activeColumn)
         .sort((a, b) => a.order - b.order)
-        .map((t) => t.id)
-
-      let insertIndex = columnIds.length
-      if (overTask && overTask.id !== activeTaskId) {
-        const idx = columnIds.indexOf(overId)
-        if (idx >= 0) insertIndex = idx
-      }
-      columnIds.splice(insertIndex, 0, activeTaskId)
-
-      return prev.map((t) => {
-        if (t.id === activeTaskId) {
-          return { ...t, column: targetColumn, order: columnIds.indexOf(activeTaskId) }
-        }
-        if (t.column === targetColumn) {
-          const idx = columnIds.indexOf(t.id)
-          if (idx >= 0) return { ...t, order: idx }
-        }
-        return t
-      })
+      const oldIndex = colTasks.findIndex((t) => t.id === active.id)
+      const newIndex = colTasks.findIndex((t) => t.id === over.id)
+      if (oldIndex < 0 || newIndex < 0) return prev
+      const reordered = arrayMove(colTasks, oldIndex, newIndex)
+      const orderMap = new Map(reordered.map((t, i) => [t.id, i]))
+      return prev.map((t) => (orderMap.has(t.id) ? { ...t, order: orderMap.get(t.id)! } : t))
     })
   }
 
-  const filtersActive = search.trim() !== '' || priorityFilter !== 'all' || tagFilter !== 'all'
-
   return (
-    <div className="mx-auto flex h-full max-w-7xl flex-col px-3 pb-[calc(0.5rem+env(safe-area-inset-bottom))] pt-4 sm:px-4">
-      <header className="mb-3 shrink-0">
-        <div className="flex items-center justify-between gap-2">
-          <h1 className="text-lg font-bold text-slate-800 dark:text-slate-100 sm:text-xl">
-            📋 タスクボード
-          </h1>
-          <div className="flex items-center gap-2">
-            {overdueCount > 0 && (
-              <span className="rounded-full bg-red-100 px-2.5 py-1 text-xs font-medium text-red-700 dark:bg-red-900/40 dark:text-red-300 sm:text-sm">
-                ⚠ 期限切れ {overdueCount} 件
-              </span>
-            )}
+    <>
+      <BackgroundFX />
+      <div className="relative z-0 mx-auto flex h-full max-w-md flex-col px-4 pt-[calc(0.75rem+env(safe-area-inset-top))]">
+        <header className="shrink-0">
+          <div className="flex items-center justify-between">
+            <div className="flex items-baseline gap-2">
+              <h1 className="text-xl font-semibold tracking-wide text-slate-50">深海タスク</h1>
+              <span className="text-[11px] tracking-[0.3em] text-lume-soft/50">ABYSS</span>
+            </div>
             <button
               type="button"
-              onClick={toggle}
-              title={theme === 'dark' ? 'ライトモードに切替' : 'ダークモードに切替'}
-              className="flex h-10 w-10 items-center justify-center rounded-lg border border-slate-300 text-base hover:bg-slate-100 dark:border-slate-600 dark:hover:bg-slate-700"
+              onClick={() => setShowFilters((v) => !v)}
+              aria-label="絞り込み"
+              className={
+                'flex h-10 w-10 items-center justify-center rounded-full border transition ' +
+                (showFilters || filtersActive
+                  ? 'border-lume/40 bg-lume/10 text-lume-soft shadow-glow-sm'
+                  : 'border-white/10 text-slate-300 active:bg-white/5')
+              }
             >
-              {theme === 'dark' ? '☀️' : '🌙'}
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+                <path d="M3 5h18M6 12h12M10 19h4" />
+              </svg>
             </button>
           </div>
-        </div>
 
-        <div className="mt-3 flex flex-wrap items-center gap-2">
-          <input
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            placeholder="🔍 検索..."
-            className="h-10 min-w-[140px] flex-1 rounded-lg border border-slate-300 px-3 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500 dark:border-slate-600 dark:bg-slate-800 dark:text-slate-100 dark:placeholder:text-slate-500 sm:max-w-[220px]"
-          />
-          <select
-            value={priorityFilter}
-            onChange={(e) => setPriorityFilter(e.target.value as PriorityFilter)}
-            title="優先度で絞り込み"
-            className="h-10 rounded-lg border border-slate-300 px-2 text-sm focus:border-blue-500 focus:outline-none dark:border-slate-600 dark:bg-slate-800 dark:text-slate-100"
-          >
-            <option value="all">優先度: すべて</option>
-            <option value="high">高</option>
-            <option value="medium">中</option>
-            <option value="low">低</option>
-          </select>
-          <select
-            value={tagFilter}
-            onChange={(e) => setTagFilter(e.target.value)}
-            title="タグで絞り込み"
-            className="h-10 rounded-lg border border-slate-300 px-2 text-sm focus:border-blue-500 focus:outline-none dark:border-slate-600 dark:bg-slate-800 dark:text-slate-100"
-          >
-            <option value="all">タグ: すべて</option>
-            {allTags.map((tag) => (
-              <option key={tag} value={tag}>
-                #{tag}
-              </option>
-            ))}
-          </select>
-          {filtersActive && (
-            <button
-              type="button"
-              onClick={() => {
-                setSearch('')
-                setPriorityFilter('all')
-                setTagFilter('all')
-              }}
-              className="h-10 rounded-lg px-3 text-sm text-slate-500 hover:bg-slate-200 dark:text-slate-400 dark:hover:bg-slate-700"
-            >
-              クリア
-            </button>
-          )}
-        </div>
-      </header>
-
-      <DndContext
-        sensors={sensors}
-        collisionDetection={closestCorners}
-        onDragStart={handleDragStart}
-        onDragEnd={handleDragEnd}
-      >
-        <div className="-mx-3 flex min-h-0 flex-1 snap-x snap-mandatory gap-3 overflow-x-auto px-3 pb-2 sm:mx-0 sm:snap-none sm:px-0 md:gap-4">
-          {COLUMNS.map((column) => (
-            <BoardColumn
-              key={column.id}
-              column={column}
-              tasks={tasksByColumn[column.id]}
-              onCardClick={setModalTask}
-              onAdd={openCreate}
-            />
-          ))}
-        </div>
-
-        <DragOverlay dropAnimation={null}>
-          {activeTask ? (
-            <div className="w-72 max-w-[80vw] rotate-2">
-              <TaskCard task={activeTask} onClick={() => {}} overlay />
+          {overdueCount > 0 && (
+            <div className="mt-2 inline-flex items-center gap-1.5 rounded-full bg-rose-500/15 px-3 py-1 text-xs font-medium text-rose-300 ring-1 ring-rose-400/25">
+              ⚠ 期限切れ {overdueCount} 件
             </div>
-          ) : null}
-        </DragOverlay>
-      </DndContext>
+          )}
 
-      {(modalTask || modalColumn) && (
-        <TaskModal
-          task={modalTask}
-          onSave={handleSave}
-          onDelete={modalTask ? handleDelete : undefined}
-          onClose={closeModal}
-        />
-      )}
+          {/* 絞り込みパネル */}
+          {showFilters && (
+            <div className="mt-3 space-y-3 rounded-2xl border border-white/10 bg-white/[0.04] p-3 backdrop-blur-md animate-fade-in">
+              <input
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                placeholder="🔍 キーワード検索"
+                className="h-10 w-full rounded-xl border border-white/10 bg-abyss-950/50 px-3 text-sm text-slate-100 placeholder:text-slate-500 focus:border-lume/50 focus:outline-none focus:ring-1 focus:ring-lume/40"
+              />
+              <div className="flex flex-wrap gap-1.5">
+                {(['all', 'high', 'medium', 'low'] as PriorityFilter[]).map((p) => (
+                  <button
+                    key={p}
+                    type="button"
+                    onClick={() => setPriorityFilter(p)}
+                    className={
+                      'rounded-full px-3 py-1.5 text-xs font-medium transition ' +
+                      (priorityFilter === p
+                        ? 'bg-lume/20 text-lume-soft ring-1 ring-lume/40'
+                        : 'bg-white/5 text-slate-400')
+                    }
+                  >
+                    {p === 'all' ? '優先度すべて' : p === 'high' ? '高' : p === 'medium' ? '中' : '低'}
+                  </button>
+                ))}
+              </div>
+              {allTags.length > 0 && (
+                <div className="flex flex-wrap gap-1.5">
+                  <button
+                    type="button"
+                    onClick={() => setTagFilter('all')}
+                    className={
+                      'rounded-full px-3 py-1.5 text-xs font-medium transition ' +
+                      (tagFilter === 'all'
+                        ? 'bg-lume/20 text-lume-soft ring-1 ring-lume/40'
+                        : 'bg-white/5 text-slate-400')
+                    }
+                  >
+                    タグすべて
+                  </button>
+                  {allTags.map((tag) => (
+                    <button
+                      key={tag}
+                      type="button"
+                      onClick={() => setTagFilter(tag)}
+                      className={
+                        'rounded-full px-3 py-1.5 text-xs font-medium transition ' +
+                        (tagFilter === tag
+                          ? 'bg-lume/20 text-lume-soft ring-1 ring-lume/40'
+                          : 'bg-white/5 text-slate-400')
+                      }
+                    >
+                      #{tag}
+                    </button>
+                  ))}
+                </div>
+              )}
+              {filtersActive && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setSearch('')
+                    setPriorityFilter('all')
+                    setTagFilter('all')
+                  }}
+                  className="text-xs text-lume-soft/70 underline-offset-2 active:underline"
+                >
+                  絞り込みをクリア
+                </button>
+              )}
+            </div>
+          )}
 
-      <footer className="pt-2 text-center text-xs text-slate-400 dark:text-slate-500">
-        データはこのブラウザ内（localStorage）にのみ保存されます
-      </footer>
-    </div>
+          {/* ステータス切替（セグメント） */}
+          <div className="mt-3 flex gap-1 rounded-2xl border border-white/10 bg-white/[0.04] p-1 backdrop-blur-md">
+            {COLUMNS.map((c) => {
+              const active = activeColumn === c.id
+              return (
+                <button
+                  key={c.id}
+                  type="button"
+                  onClick={() => setActiveColumn(c.id)}
+                  className={
+                    'relative flex flex-1 items-center justify-center gap-1.5 rounded-xl py-2 text-sm font-medium transition ' +
+                    (active
+                      ? 'bg-lume/15 text-lume-soft shadow-glow-sm ring-1 ring-lume/30'
+                      : 'text-slate-400 active:bg-white/5')
+                  }
+                >
+                  {c.title}
+                  <span
+                    className={
+                      'min-w-[1.25rem] rounded-full px-1 text-[11px] ' +
+                      (active ? 'bg-lume/20 text-lume-soft' : 'bg-white/5 text-slate-500')
+                    }
+                  >
+                    {counts[c.id]}
+                  </span>
+                </button>
+              )
+            })}
+          </div>
+        </header>
+
+        {/* タスク一覧（選択中の列） */}
+        <DndContext
+          sensors={sensors}
+          collisionDetection={closestCenter}
+          onDragStart={handleDragStart}
+          onDragEnd={handleDragEnd}
+        >
+          <main className="mt-3 flex min-h-0 flex-1 flex-col gap-2.5 overflow-y-auto pb-32">
+            <SortableContext
+              items={visibleTasks.map((t) => t.id)}
+              strategy={verticalListSortingStrategy}
+            >
+              {visibleTasks.map((task) => (
+                <TaskCard key={task.id} task={task} onClick={openEdit} onMove={moveTask} />
+              ))}
+            </SortableContext>
+
+            {visibleTasks.length === 0 && (
+              <div className="mt-16 select-none text-center text-slate-500">
+                <div className="text-4xl">🪼</div>
+                <p className="mt-3 text-sm">
+                  {filtersActive ? '条件に合うタスクがありません' : 'ここにはまだ何も漂っていません'}
+                </p>
+              </div>
+            )}
+          </main>
+
+          <DragOverlay dropAnimation={null}>
+            {activeTask ? (
+              <div className="rotate-1">
+                <TaskCard task={activeTask} onClick={() => {}} overlay />
+              </div>
+            ) : null}
+          </DragOverlay>
+        </DndContext>
+
+        {/* 追加ボタン（FAB） */}
+        <button
+          type="button"
+          onClick={openCreate}
+          aria-label="タスクを追加"
+          className="absolute bottom-[calc(1.5rem+env(safe-area-inset-bottom))] right-5 z-30 flex h-14 w-14 items-center justify-center rounded-full border border-lume/40 bg-lume/20 text-3xl font-light text-lume-soft shadow-glow backdrop-blur-md transition active:scale-95 active:bg-lume/30"
+        >
+          <span className="-mt-0.5">+</span>
+        </button>
+
+        {modalOpen && (
+          <TaskModal
+            task={modalTask}
+            defaultColumn={activeColumn}
+            onSave={handleSave}
+            onDelete={modalTask ? handleDelete : undefined}
+            onClose={closeModal}
+          />
+        )}
+      </div>
+    </>
   )
 }

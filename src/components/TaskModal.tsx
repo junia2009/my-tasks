@@ -1,16 +1,19 @@
 import { useEffect, useState } from 'react'
-import type { Priority, Task } from '../types'
-import { PRIORITY_LABELS } from '../types'
+import type { ColumnId, Priority, Task } from '../types'
+import { COLUMNS, PRIORITY_LABELS } from '../types'
 
 interface Props {
   /** Existing task to edit, or null when creating a new one */
   task: Task | null
+  /** Column the new task will be created in (create mode only) */
+  defaultColumn: ColumnId
   onSave: (data: {
     title: string
     description: string
     priority: Priority
     dueDate: string
     tags: string[]
+    column: ColumnId
   }) => void
   onDelete?: () => void
   onClose: () => void
@@ -18,12 +21,18 @@ interface Props {
 
 const PRIORITIES: Priority[] = ['high', 'medium', 'low']
 
-export function TaskModal({ task, onSave, onDelete, onClose }: Props) {
+const inputClass =
+  'w-full rounded-xl border border-white/10 bg-abyss-950/50 px-3 py-2.5 text-sm text-slate-100 placeholder:text-slate-500 focus:border-lume/50 focus:outline-none focus:ring-1 focus:ring-lume/40 [color-scheme:dark]'
+
+const labelClass = 'mb-1.5 block text-xs font-medium uppercase tracking-wide text-lume-soft/80'
+
+export function TaskModal({ task, defaultColumn, onSave, onDelete, onClose }: Props) {
   const [title, setTitle] = useState(task?.title ?? '')
   const [description, setDescription] = useState(task?.description ?? '')
   const [priority, setPriority] = useState<Priority>(task?.priority ?? 'medium')
   const [dueDate, setDueDate] = useState(task?.dueDate ?? '')
   const [tagsInput, setTagsInput] = useState(task?.tags.join(', ') ?? '')
+  const [column, setColumn] = useState<ColumnId>(task?.column ?? defaultColumn)
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
@@ -41,58 +50,84 @@ export function TaskModal({ task, onSave, onDelete, onClose }: Props) {
       .split(',')
       .map((t) => t.trim())
       .filter(Boolean)
-    onSave({ title: trimmed, description: description.trim(), priority, dueDate, tags })
+    onSave({ title: trimmed, description: description.trim(), priority, dueDate, tags, column })
   }
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-end justify-center bg-black/40 sm:items-center sm:p-4"
+      className="fixed inset-0 z-50 flex items-end justify-center bg-abyss-950/70 backdrop-blur-sm animate-fade-in sm:items-center sm:p-4"
       onMouseDown={onClose}
     >
       <div
-        className="max-h-[92dvh] w-full overflow-y-auto rounded-t-2xl bg-white p-5 pb-[calc(1.25rem+env(safe-area-inset-bottom))] shadow-2xl dark:bg-slate-800 sm:max-w-md sm:rounded-xl sm:p-6 sm:pb-6"
+        className="max-h-[92dvh] w-full animate-sheet-up overflow-y-auto rounded-t-3xl border border-white/10 bg-abyss-800/80 p-5 pb-[calc(1.5rem+env(safe-area-inset-bottom))] shadow-glow backdrop-blur-xl sm:max-w-md sm:rounded-3xl sm:p-6 sm:pb-6"
         onMouseDown={(e) => e.stopPropagation()}
       >
-        <h2 className="mb-4 text-lg font-bold text-slate-800 dark:text-slate-100">
+        {/* グラバー（モバイルのボトムシート感） */}
+        <div className="mx-auto mb-4 h-1 w-10 rounded-full bg-white/20 sm:hidden" />
+
+        <h2 className="mb-5 text-lg font-semibold text-slate-50">
           {task ? 'タスクを編集' : '新しいタスク'}
         </h2>
+
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
-            <label className="mb-1 block text-sm font-medium text-slate-600 dark:text-slate-300">タイトル</label>
+            <label className={labelClass}>タイトル</label>
             <input
               autoFocus
               value={title}
               onChange={(e) => setTitle(e.target.value)}
               placeholder="例: PR #42 をレビューする"
-              className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500 dark:border-slate-600 dark:bg-slate-700 dark:text-slate-100 dark:placeholder:text-slate-400 dark:[color-scheme:dark]"
+              className={inputClass}
             />
           </div>
 
           <div>
-            <label className="mb-1 block text-sm font-medium text-slate-600 dark:text-slate-300">説明</label>
+            <label className={labelClass}>説明</label>
             <textarea
               value={description}
               onChange={(e) => setDescription(e.target.value)}
               rows={3}
               placeholder="詳細・メモ"
-              className="w-full resize-none rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500 dark:border-slate-600 dark:bg-slate-700 dark:text-slate-100 dark:placeholder:text-slate-400"
+              className={inputClass + ' resize-none'}
             />
           </div>
 
-          <div className="flex gap-4">
+          {/* ステータス（列の移動） */}
+          <div>
+            <label className={labelClass}>ステータス</label>
+            <div className="flex gap-1.5">
+              {COLUMNS.map((c) => (
+                <button
+                  key={c.id}
+                  type="button"
+                  onClick={() => setColumn(c.id)}
+                  className={
+                    'flex-1 rounded-xl border px-2 py-2.5 text-sm font-medium transition ' +
+                    (column === c.id
+                      ? 'border-lume/50 bg-lume/15 text-lume-soft shadow-glow-sm'
+                      : 'border-white/10 text-slate-400 active:bg-white/5')
+                  }
+                >
+                  {c.title}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          <div className="flex gap-3">
             <div className="flex-1">
-              <label className="mb-1 block text-sm font-medium text-slate-600 dark:text-slate-300">優先度</label>
-              <div className="flex gap-1">
+              <label className={labelClass}>優先度</label>
+              <div className="flex gap-1.5">
                 {PRIORITIES.map((p) => (
                   <button
                     key={p}
                     type="button"
                     onClick={() => setPriority(p)}
                     className={
-                      'flex-1 rounded-lg border px-2 py-2 text-sm font-medium transition ' +
+                      'flex-1 rounded-xl border px-2 py-2.5 text-sm font-medium transition ' +
                       (priority === p
-                        ? 'border-blue-500 bg-blue-50 text-blue-700 dark:bg-blue-900/40 dark:text-blue-300'
-                        : 'border-slate-300 text-slate-500 hover:bg-slate-50 dark:border-slate-600 dark:text-slate-400 dark:hover:bg-slate-700')
+                        ? 'border-lume/50 bg-lume/15 text-lume-soft shadow-glow-sm'
+                        : 'border-white/10 text-slate-400 active:bg-white/5')
                     }
                   >
                     {PRIORITY_LABELS[p]}
@@ -101,26 +136,24 @@ export function TaskModal({ task, onSave, onDelete, onClose }: Props) {
               </div>
             </div>
             <div className="flex-1">
-              <label className="mb-1 block text-sm font-medium text-slate-600 dark:text-slate-300">期限</label>
+              <label className={labelClass}>期限</label>
               <input
                 type="date"
                 title="期限"
                 value={dueDate}
                 onChange={(e) => setDueDate(e.target.value)}
-                className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500 dark:border-slate-600 dark:bg-slate-700 dark:text-slate-100 dark:placeholder:text-slate-400 dark:[color-scheme:dark]"
+                className={inputClass}
               />
             </div>
           </div>
 
           <div>
-            <label className="mb-1 block text-sm font-medium text-slate-600 dark:text-slate-300">
-              タグ（カンマ区切り）
-            </label>
+            <label className={labelClass}>タグ（カンマ区切り）</label>
             <input
               value={tagsInput}
               onChange={(e) => setTagsInput(e.target.value)}
               placeholder="例: backend, urgent"
-              className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500 dark:border-slate-600 dark:bg-slate-700 dark:text-slate-100 dark:placeholder:text-slate-400 dark:[color-scheme:dark]"
+              className={inputClass}
             />
           </div>
 
@@ -129,7 +162,7 @@ export function TaskModal({ task, onSave, onDelete, onClose }: Props) {
               <button
                 type="button"
                 onClick={onDelete}
-                className="rounded-lg px-3 py-2 text-sm font-medium text-red-600 hover:bg-red-50 dark:text-red-400 dark:hover:bg-red-900/30"
+                className="rounded-xl px-3 py-2.5 text-sm font-medium text-rose-300 transition active:bg-rose-500/10"
               >
                 削除
               </button>
@@ -140,13 +173,13 @@ export function TaskModal({ task, onSave, onDelete, onClose }: Props) {
               <button
                 type="button"
                 onClick={onClose}
-                className="rounded-lg px-4 py-2.5 text-sm font-medium text-slate-600 hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-slate-700"
+                className="rounded-xl px-4 py-2.5 text-sm font-medium text-slate-300 transition active:bg-white/5"
               >
                 キャンセル
               </button>
               <button
                 type="submit"
-                className="rounded-lg bg-blue-600 px-5 py-2.5 text-sm font-medium text-white hover:bg-blue-700"
+                className="rounded-xl border border-lume/40 bg-lume/15 px-5 py-2.5 text-sm font-semibold text-lume-soft shadow-glow transition active:bg-lume/25"
               >
                 保存
               </button>
