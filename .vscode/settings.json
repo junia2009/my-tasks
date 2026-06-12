@@ -1,0 +1,6 @@
+{
+  // Tailwind の @tailwind / @apply 等を VSCode 標準のCSS検証器が
+  // 「Unknown at rule」と誤検知するため、未知の at-rule 警告を無効化する。
+  // 実際の構文チェックはビルド(PostCSS)と ESLint が担う。
+  "css.lint.unknownAtRules": "ignore"
+}
