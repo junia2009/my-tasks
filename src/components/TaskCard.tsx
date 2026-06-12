@@ -59,7 +59,7 @@ export function TaskCard({ task, onClick, onMove, overlay = false }: Props) {
       style={style}
       onClick={() => onClick(task)}
       className={
-        'group relative flex overflow-hidden rounded-2xl border border-white/10 bg-white/[0.06] backdrop-blur-md transition ' +
+        'group relative flex shrink-0 overflow-hidden rounded-2xl border border-white/10 bg-white/[0.06] backdrop-blur-md transition ' +
         (overlay
           ? 'cursor-grabbing shadow-glow ring-1 ring-lume/40'
           : 'cursor-pointer shadow-card active:bg-white/[0.1]')
