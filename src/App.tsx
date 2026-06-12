@@ -237,7 +237,7 @@ export default function App() {
   return (
     <>
       <BackgroundFX />
-      <div className="relative z-0 mx-auto flex h-full max-w-md flex-col px-4 pt-[calc(0.75rem+env(safe-area-inset-top))]">
+      <div className="relative z-0 mx-auto flex h-full max-w-md flex-col px-4 pt-[calc(1.25rem+env(safe-area-inset-top))]">
         <header className="shrink-0">
           <div className="flex items-center justify-between">
             <div>
