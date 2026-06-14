@@ -21,8 +21,16 @@ import { BackgroundFX } from './components/BackgroundFX'
 import { TaskCard } from './components/TaskCard'
 import { TaskModal } from './components/TaskModal'
 import { useLocalStorage } from './useLocalStorage'
-import { COLUMNS, type ColumnId, type Priority, type Task } from './types'
-import { dueStatus, todayISO } from './dateUtils'
+import {
+  COLUMNS,
+  PRIORITY_RANK,
+  SORT_LABELS,
+  type ColumnId,
+  type Priority,
+  type SortMode,
+  type Task,
+} from './types'
+import { dayKey, dueStatus, relativeDayLabel, todayISO } from './dateUtils'
 
 const STORAGE_KEY = 'kanban.tasks.v1'
 
@@ -61,12 +69,25 @@ function seed(): Task[] {
       column: 'done',
       order: 0,
       createdAt: now,
+      completedAt: now,
     },
   ]
 }
 
 const COLUMN_IDS: ColumnId[] = ['todo', 'in-progress', 'done']
 const PRIORITIES: Priority[] = ['high', 'medium', 'low']
+const SORT_MODES: SortMode[] = ['manual', 'due', 'priority']
+
+/** done へ移動したら完了日時を確定（既存値は保持）、それ以外の列では未設定に戻す。 */
+function completedAtFor(target: ColumnId, existing?: number): number | undefined {
+  if (target !== 'done') return undefined
+  return existing ?? Date.now()
+}
+
+/** 完了日時（無ければ作成日時）の新しい順。タイムライン／完了列の並び。 */
+function byCompletedDesc(a: Task, b: Task): number {
+  return (b.completedAt ?? b.createdAt) - (a.completedAt ?? a.createdAt)
+}
 
 /** 壊れた・古い形式の保存データでも落ちないように各タスクを正規化する。 */
 function sanitizeTasks(raw: unknown): Task[] {
@@ -83,6 +104,8 @@ function sanitizeTasks(raw: unknown): Task[] {
       column: COLUMN_IDS.includes(t.column as ColumnId) ? (t.column as ColumnId) : 'todo',
       order: typeof t.order === 'number' ? t.order : i,
       createdAt: typeof t.createdAt === 'number' ? t.createdAt : Date.now(),
+      // done なのに完了日時が無い旧データは未設定のまま（表示時に createdAt で代替）
+      completedAt: typeof t.completedAt === 'number' ? t.completedAt : undefined,
     }))
 }
 
@@ -98,6 +121,7 @@ export default function App() {
   const [priorityFilter, setPriorityFilter] = useState<PriorityFilter>('all')
   const [tagFilter, setTagFilter] = useState<string>('all')
   const [showFilters, setShowFilters] = useState(false)
+  const [sortMode, setSortMode] = useState<SortMode>('manual')
 
   const [modalOpen, setModalOpen] = useState(false)
   const [modalTask, setModalTask] = useState<Task | null>(null)
@@ -141,17 +165,47 @@ export default function App() {
     return map
   }, [tasks, matches])
 
-  const visibleTasks = useMemo(
-    () =>
-      tasks
-        .filter((t) => t.column === activeColumn && matches(t))
-        .sort((a, b) => a.order - b.order),
-    [tasks, activeColumn, matches],
-  )
+  const visibleTasks = useMemo(() => {
+    const list = tasks.filter((t) => t.column === activeColumn && matches(t))
+    // 完了列は常にタイムライン順（完了日時の新しい順）。
+    if (activeColumn === 'done') return list.sort(byCompletedDesc)
+    if (sortMode === 'due') {
+      // 期限あり昇順 → 期限なしは末尾。同点は手動順で安定化。
+      return list.sort((a, b) => {
+        if (a.dueDate && b.dueDate) return a.dueDate.localeCompare(b.dueDate) || a.order - b.order
+        if (a.dueDate) return -1
+        if (b.dueDate) return 1
+        return a.order - b.order
+      })
+    }
+    if (sortMode === 'priority') {
+      return list.sort(
+        (a, b) => PRIORITY_RANK[a.priority] - PRIORITY_RANK[b.priority] || a.order - b.order,
+      )
+    }
+    return list.sort((a, b) => a.order - b.order)
+  }, [tasks, activeColumn, matches, sortMode])
+
+  // 完了列は日付ごとにグルーピングして見出しを付ける（visibleTasks は完了日降順済み）。
+  const timelineGroups = useMemo(() => {
+    if (activeColumn !== 'done') return [] as { key: string; items: Task[] }[]
+    const groups: { key: string; items: Task[] }[] = []
+    for (const t of visibleTasks) {
+      const key = dayKey(t.completedAt ?? t.createdAt)
+      const last = groups[groups.length - 1]
+      if (last && last.key === key) last.items.push(t)
+      else groups.push({ key, items: [t] })
+    }
+    return groups
+  }, [activeColumn, visibleTasks])
 
   const activeTask = activeId ? tasks.find((t) => t.id === activeId) ?? null : null
   const filtersActive =
     search.trim() !== '' || priorityFilter !== 'all' || tagFilter !== 'all'
+
+  // 手動並び・未フィルタ・未完了列のときだけドラッグ並べ替えを許可する。
+  // （ソート中やフィルタ中の並べ替えは順序が壊れるため無効化）
+  const dndEnabled = sortMode === 'manual' && activeColumn !== 'done' && !filtersActive
 
   function openCreate() {
     setModalTask(null)
@@ -183,7 +237,12 @@ export default function App() {
         const movedColumn = data.column !== modalTask.column
         return prev.map((t) =>
           t.id === modalTask.id
-            ? { ...t, ...data, order: movedColumn ? endOrder(data.column, prev) : t.order }
+            ? {
+                ...t,
+                ...data,
+                order: movedColumn ? endOrder(data.column, prev) : t.order,
+                completedAt: completedAtFor(data.column, t.completedAt),
+              }
             : t,
         )
       }
@@ -192,6 +251,7 @@ export default function App() {
         ...data,
         order: endOrder(data.column, prev),
         createdAt: Date.now(),
+        completedAt: completedAtFor(data.column),
       }
       return [...prev, newTask]
     })
@@ -208,7 +268,14 @@ export default function App() {
   function moveTask(task: Task, target: ColumnId) {
     setTasks((prev) =>
       prev.map((t) =>
-        t.id === task.id ? { ...t, column: target, order: endOrder(target, prev) } : t,
+        t.id === task.id
+          ? {
+              ...t,
+              column: target,
+              order: endOrder(target, prev),
+              completedAt: completedAtFor(target, t.completedAt),
+            }
+          : t,
       ),
     )
   }
@@ -373,6 +440,28 @@ export default function App() {
               )
             })}
           </div>
+
+          {/* 並び順（未完了列のみ。完了列は常に完了日タイムライン） */}
+          {activeColumn !== 'done' && (
+            <div className="mt-2 flex items-center justify-end gap-1.5">
+              <span className="mr-0.5 text-[11px] text-slate-500">並び順</span>
+              {SORT_MODES.map((m) => (
+                <button
+                  key={m}
+                  type="button"
+                  onClick={() => setSortMode(m)}
+                  className={
+                    'rounded-full px-2.5 py-1 text-[11px] font-medium transition ' +
+                    (sortMode === m
+                      ? 'bg-lume/20 text-lume-soft ring-1 ring-lume/40'
+                      : 'bg-white/5 text-slate-400')
+                  }
+                >
+                  {SORT_LABELS[m]}
+                </button>
+              ))}
+            </div>
+          )}
         </header>
 
         {/* タスク一覧（選択中の列） */}
@@ -384,13 +473,40 @@ export default function App() {
           onDragCancel={() => setActiveId(null)}
         >
           <main className="mt-3 flex min-h-0 flex-1 flex-col gap-2.5 overflow-y-auto pb-24">
+            {/* SortableContext は常時マウント（完了列でもカード側で無効化）。 */}
             <SortableContext
               items={visibleTasks.map((t) => t.id)}
               strategy={verticalListSortingStrategy}
             >
-              {visibleTasks.map((task) => (
-                <TaskCard key={task.id} task={task} onClick={openEdit} onMove={moveTask} />
-              ))}
+              {activeColumn === 'done'
+                ? // 完了タイムライン：日付見出しごとにグルーピング（ドラッグ無効）
+                  timelineGroups.map((g) => (
+                    <div key={g.key} className="flex flex-col gap-2.5">
+                      <div className="flex items-center gap-2 px-1 pt-1 text-[11px] font-medium uppercase tracking-wider text-lume-soft/50">
+                        <span>{relativeDayLabel(g.key)}</span>
+                        <span className="h-px flex-1 bg-white/10" />
+                        <span className="text-slate-500">{g.items.length}</span>
+                      </div>
+                      {g.items.map((task) => (
+                        <TaskCard
+                          key={task.id}
+                          task={task}
+                          onClick={openEdit}
+                          onMove={moveTask}
+                          sortable={false}
+                        />
+                      ))}
+                    </div>
+                  ))
+                : visibleTasks.map((task) => (
+                    <TaskCard
+                      key={task.id}
+                      task={task}
+                      onClick={openEdit}
+                      onMove={moveTask}
+                      sortable={dndEnabled}
+                    />
+                  ))}
             </SortableContext>
 
             {visibleTasks.length === 0 && (

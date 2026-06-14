@@ -10,6 +10,8 @@ interface Props {
   onMove?: (task: Task, target: ColumnId) => void
   /** Overlay copy rendered in DragOverlay — no sortable wiring needed. */
   overlay?: boolean
+  /** Whether drag-to-reorder is available (false hides the handle). */
+  sortable?: boolean
 }
 
 // 発光ドット（優先度）
@@ -27,9 +29,9 @@ const PRIORITY_TEXT: Record<Task['priority'], string> = {
 
 const columnTitle = (id: ColumnId) => COLUMNS.find((c) => c.id === id)?.title ?? ''
 
-export function TaskCard({ task, onClick, onMove, overlay = false }: Props) {
+export function TaskCard({ task, onClick, onMove, overlay = false, sortable = true }: Props) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } =
-    useSortable({ id: task.id, disabled: overlay })
+    useSortable({ id: task.id, disabled: overlay || !sortable })
 
   // transform / transition は @dnd-kit がドラッグ中に毎フレーム更新する動的値で、
   // 静的な CSS クラスにはできない（ライブラリ標準のパターン）。それ以外の見た目は
@@ -137,24 +139,26 @@ export function TaskCard({ task, onClick, onMove, overlay = false }: Props) {
         )}
       </div>
 
-      {/* ドラッグハンドル（並べ替え専用。ここだけがドラッグを開始する） */}
-      <button
-        type="button"
-        aria-label="ドラッグして並べ替え"
-        {...attributes}
-        {...listeners}
-        onClick={(e) => e.stopPropagation()}
-        className="flex w-10 shrink-0 cursor-grab touch-none items-center justify-center self-stretch text-slate-500 transition hover:text-lume-soft active:cursor-grabbing"
-      >
-        <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true">
-          <circle cx="5" cy="3" r="1.4" />
-          <circle cx="11" cy="3" r="1.4" />
-          <circle cx="5" cy="8" r="1.4" />
-          <circle cx="11" cy="8" r="1.4" />
-          <circle cx="5" cy="13" r="1.4" />
-          <circle cx="11" cy="13" r="1.4" />
-        </svg>
-      </button>
+      {/* ドラッグハンドル（並べ替え専用。手動並び・未完了列のときだけ表示） */}
+      {!overlay && sortable && (
+        <button
+          type="button"
+          aria-label="ドラッグして並べ替え"
+          {...attributes}
+          {...listeners}
+          onClick={(e) => e.stopPropagation()}
+          className="flex w-10 shrink-0 cursor-grab touch-none items-center justify-center self-stretch text-slate-500 transition hover:text-lume-soft active:cursor-grabbing"
+        >
+          <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true">
+            <circle cx="5" cy="3" r="1.4" />
+            <circle cx="11" cy="3" r="1.4" />
+            <circle cx="5" cy="8" r="1.4" />
+            <circle cx="11" cy="8" r="1.4" />
+            <circle cx="5" cy="13" r="1.4" />
+            <circle cx="11" cy="13" r="1.4" />
+          </svg>
+        </button>
+      )}
     </div>
   )
 }

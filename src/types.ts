@@ -14,6 +14,24 @@ export interface Task {
   /** ordering within a column; lower comes first */
   order: number
   createdAt: number
+  /** epoch ms when moved to done; undefined while not completed */
+  completedAt?: number
+}
+
+/** 未完了列での表示順。完了列は常に完了日時の新しい順（タイムライン）。 */
+export type SortMode = 'manual' | 'due' | 'priority'
+
+export const SORT_LABELS: Record<SortMode, string> = {
+  manual: '手動',
+  due: '期限順',
+  priority: '優先度順',
+}
+
+/** 優先度の並べ替え用ランク（小さいほど先＝高優先）。 */
+export const PRIORITY_RANK: Record<Priority, number> = {
+  high: 0,
+  medium: 1,
+  low: 2,
 }
 
 export interface Column {
