@@ -2,6 +2,20 @@ export type ColumnId = 'todo' | 'in-progress' | 'done'
 
 export type Priority = 'high' | 'medium' | 'low'
 
+export interface Subtask {
+  id: string
+  title: string
+  done: boolean
+}
+
+export type RecurrenceFreq = 'daily' | 'weekly'
+
+export interface Recurrence {
+  freq: RecurrenceFreq
+  /** weekly のときの対象曜日（0=日 … 6=土）。空配列なら同じ曜日の翌週。 */
+  weekdays?: number[]
+}
+
 export interface Task {
   id: string
   title: string
@@ -16,7 +30,13 @@ export interface Task {
   createdAt: number
   /** epoch ms when moved to done; undefined while not completed */
   completedAt?: number
+  subtasks?: Subtask[]
+  /** 繰り返し設定。done にすると次回分を自動生成する */
+  recurrence?: Recurrence
 }
+
+/** 曜日ラベル（index = getDay() の 0..6）。 */
+export const WEEKDAY_LABELS = ['日', '月', '火', '水', '木', '金', '土']
 
 /** 未完了列での表示順。完了列は常に完了日時の新しい順（タイムライン）。 */
 export type SortMode = 'manual' | 'due' | 'priority'

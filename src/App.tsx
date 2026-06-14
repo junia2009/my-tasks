@@ -27,10 +27,12 @@ import {
   SORT_LABELS,
   type ColumnId,
   type Priority,
+  type Recurrence,
   type SortMode,
+  type Subtask,
   type Task,
 } from './types'
-import { dayKey, dueStatus, relativeDayLabel, todayISO } from './dateUtils'
+import { dayKey, dueStatus, nextDueDate, relativeDayLabel, todayISO } from './dateUtils'
 
 const STORAGE_KEY = 'kanban.tasks.v1'
 
@@ -89,6 +91,57 @@ function byCompletedDesc(a: Task, b: Task): number {
   return (b.completedAt ?? b.createdAt) - (a.completedAt ?? a.createdAt)
 }
 
+/**
+ * done にした繰り返しタスクから次回分（todo）を生成する。
+ * recurrence が無ければ null。期限は元の期限（無ければ今日）を基準に算出し、
+ * サブタスクは未チェックで引き継ぐ。元タスクは done のまま履歴に残る。
+ */
+function spawnRecurrence(task: Task, list: Task[]): Task | null {
+  if (!task.recurrence) return null
+  const from = task.dueDate || todayISO()
+  const dueDate = nextDueDate(task.recurrence.freq, task.recurrence.weekdays, from)
+  const order =
+    list.filter((t) => t.column === 'todo').reduce((m, t) => Math.max(m, t.order), -1) + 1
+  return {
+    id: crypto.randomUUID(),
+    title: task.title,
+    description: task.description,
+    priority: task.priority,
+    dueDate,
+    tags: task.tags,
+    column: 'todo',
+    order,
+    createdAt: Date.now(),
+    completedAt: undefined,
+    subtasks: task.subtasks?.map((s) => ({ ...s, id: crypto.randomUUID(), done: false })),
+    recurrence: task.recurrence,
+  }
+}
+
+function sanitizeSubtasks(raw: unknown): Subtask[] | undefined {
+  if (!Array.isArray(raw)) return undefined
+  const list = raw
+    .filter((s): s is Record<string, unknown> => typeof s === 'object' && s !== null)
+    .map((s) => ({
+      id: typeof s.id === 'string' ? s.id : crypto.randomUUID(),
+      title: typeof s.title === 'string' ? s.title : '',
+      done: s.done === true,
+    }))
+    .filter((s) => s.title !== '')
+  return list.length > 0 ? list : undefined
+}
+
+function sanitizeRecurrence(raw: unknown): Recurrence | undefined {
+  if (typeof raw !== 'object' || raw === null) return undefined
+  const r = raw as Record<string, unknown>
+  if (r.freq !== 'daily' && r.freq !== 'weekly') return undefined
+  if (r.freq === 'daily') return { freq: 'daily' }
+  const weekdays = Array.isArray(r.weekdays)
+    ? r.weekdays.filter((n): n is number => typeof n === 'number' && n >= 0 && n <= 6)
+    : undefined
+  return { freq: 'weekly', weekdays }
+}
+
 /** 壊れた・古い形式の保存データでも落ちないように各タスクを正規化する。 */
 function sanitizeTasks(raw: unknown): Task[] {
   if (!Array.isArray(raw)) return seed()
@@ -106,6 +159,8 @@ function sanitizeTasks(raw: unknown): Task[] {
       createdAt: typeof t.createdAt === 'number' ? t.createdAt : Date.now(),
       // done なのに完了日時が無い旧データは未設定のまま（表示時に createdAt で代替）
       completedAt: typeof t.completedAt === 'number' ? t.completedAt : undefined,
+      subtasks: sanitizeSubtasks(t.subtasks),
+      recurrence: sanitizeRecurrence(t.recurrence),
     }))
 }
 
@@ -231,11 +286,13 @@ export default function App() {
     dueDate: string
     tags: string[]
     column: ColumnId
+    subtasks?: Subtask[]
+    recurrence?: Recurrence
   }) {
     setTasks((prev) => {
       if (modalTask) {
         const movedColumn = data.column !== modalTask.column
-        return prev.map((t) =>
+        const updated = prev.map((t) =>
           t.id === modalTask.id
             ? {
                 ...t,
@@ -245,6 +302,13 @@ export default function App() {
               }
             : t,
         )
+        // 未完了 → done になった繰り返しタスクは次回分を生成
+        if (data.column === 'done' && modalTask.column !== 'done') {
+          const doneTask = updated.find((t) => t.id === modalTask.id)!
+          const next = spawnRecurrence(doneTask, updated)
+          if (next) return [...updated, next]
+        }
+        return updated
       }
       const newTask: Task = {
         id: crypto.randomUUID(),
@@ -253,7 +317,12 @@ export default function App() {
         createdAt: Date.now(),
         completedAt: completedAtFor(data.column),
       }
-      return [...prev, newTask]
+      const list = [...prev, newTask]
+      if (newTask.column === 'done') {
+        const next = spawnRecurrence(newTask, list)
+        if (next) return [...list, next]
+      }
+      return list
     })
     // 新規作成した列へ自動で切り替え
     if (!modalTask) setActiveColumn(data.column)
@@ -266,8 +335,8 @@ export default function App() {
   }
 
   function moveTask(task: Task, target: ColumnId) {
-    setTasks((prev) =>
-      prev.map((t) =>
+    setTasks((prev) => {
+      const updated = prev.map((t) =>
         t.id === task.id
           ? {
               ...t,
@@ -276,8 +345,15 @@ export default function App() {
               completedAt: completedAtFor(target, t.completedAt),
             }
           : t,
-      ),
-    )
+      )
+      // 未完了 → done になった繰り返しタスクは次回分を生成
+      if (target === 'done' && task.column !== 'done') {
+        const doneTask = updated.find((t) => t.id === task.id)!
+        const next = spawnRecurrence(doneTask, updated)
+        if (next) return [...updated, next]
+      }
+      return updated
+    })
   }
 
   function handleDragStart(e: DragStartEvent) {

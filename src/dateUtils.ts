@@ -43,3 +43,25 @@ export function relativeDayLabel(key: string): string {
   const [, m, d] = key.split('-')
   return `${Number(m)}月${Number(d)}日`
 }
+
+/**
+ * 繰り返しタスクの次回期限を算出（YYYY-MM-DD）。
+ * - daily: 基準日の翌日
+ * - weekly: 基準日より後で最初に該当曜日になる日（曜日未指定なら同曜日の翌週）
+ * 基準日 `from` は元タスクの期限（無ければ完了日＝今日）を渡す。
+ */
+export function nextDueDate(
+  freq: 'daily' | 'weekly',
+  weekdays: number[] | undefined,
+  from: string,
+): string {
+  const base = new Date(from + 'T00:00:00').getTime()
+  if (freq === 'daily') return dayKey(base + 86400000)
+  if (weekdays && weekdays.length > 0) {
+    for (let i = 1; i <= 7; i++) {
+      const d = base + i * 86400000
+      if (weekdays.includes(new Date(d).getDay())) return dayKey(d)
+    }
+  }
+  return dayKey(base + 7 * 86400000)
+}

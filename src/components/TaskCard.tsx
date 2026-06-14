@@ -54,6 +54,9 @@ export function TaskCard({ task, onClick, onMove, overlay = false, sortable = tr
   const next = NEXT_COLUMN[task.column]
   const prev = PREV_COLUMN[task.column]
 
+  const subTotal = task.subtasks?.length ?? 0
+  const subDone = task.subtasks?.filter((s) => s.done).length ?? 0
+
   return (
     <div
       ref={overlay ? undefined : setNodeRef}
@@ -88,10 +91,30 @@ export function TaskCard({ task, onClick, onMove, overlay = false, sortable = tr
           </p>
         )}
 
+        {subTotal > 0 && (
+          <div className="mt-2 flex items-center gap-2">
+            <div className="h-1 flex-1 overflow-hidden rounded-full bg-white/10">
+              {/* 進捗は動的値のためインライン幅指定（静的クラス化できない） */}
+              <div
+                className="h-full rounded-full bg-lume/70 transition-[width]"
+                style={{ width: `${Math.round((subDone / subTotal) * 100)}%` }}
+              />
+            </div>
+            <span className="shrink-0 text-[11px] tabular-nums text-slate-400">
+              {subDone}/{subTotal}
+            </span>
+          </div>
+        )}
+
         <div className="mt-2.5 flex flex-wrap items-center gap-1.5">
           <span className={'text-[11px] font-semibold ' + PRIORITY_TEXT[task.priority]}>
             {PRIORITY_LABELS[task.priority]}
           </span>
+          {task.recurrence && (
+            <span className="text-[11px] text-lume-soft/70" title="繰り返し">
+              🔁
+            </span>
+          )}
           {task.dueDate && (
             <span className={'rounded-md px-1.5 py-0.5 text-[11px] ' + dueStyle}>
               {status === 'overdue' ? '⚠ ' : '🜨 '}
