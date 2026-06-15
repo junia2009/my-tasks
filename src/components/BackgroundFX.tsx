@@ -16,38 +16,86 @@ const BUBBLES = [
   'left-[48%] h-[4px] w-[4px] [animation-duration:32s] [animation-delay:16s] [--bubble-opacity:0.14]',
 ]
 
-// 魚のシルエット。dir で泳ぐ向き（l=左へ / r=右へ）。負の delay で起動時から
+type CreatureType = 'fishA' | 'fishB' | 'ray' | 'angler'
+
+// 横方向に漂う生物。dir で泳ぐ向き（l=左へ / r=右へ）。負の delay で起動時から
 // 画面内に散らばって見えるようにしている。共通スタイルは index.css の .fish。
-const FISH = [
-  { dir: 'l', cls: 'top-[15%] w-[58px] [animation-duration:46s] [animation-delay:-8s] [--fish-opacity:0.10]' },
-  { dir: 'r', cls: 'top-[40%] w-[42px] [animation-duration:60s] [animation-delay:-25s] [--fish-opacity:0.07]' },
-  { dir: 'l', cls: 'top-[64%] w-[72px] [animation-duration:54s] [animation-delay:-38s] [--fish-opacity:0.09]' },
-  { dir: 'r', cls: 'top-[82%] w-[34px] [animation-duration:68s] [animation-delay:-14s] [--fish-opacity:0.06]' },
+const CREATURES: { type: CreatureType; dir: 'l' | 'r'; cls: string }[] = [
+  // 大きめの魚
+  { type: 'fishA', dir: 'l', cls: 'top-[13%] w-[58px] [animation-duration:46s] [animation-delay:-8s] [--fish-opacity:0.10]' },
+  { type: 'fishA', dir: 'l', cls: 'top-[60%] w-[72px] [animation-duration:54s] [animation-delay:-38s] [--fish-opacity:0.09]' },
+  { type: 'fishB', dir: 'r', cls: 'top-[26%] w-[44px] [animation-duration:50s] [animation-delay:-20s] [--fish-opacity:0.08]' },
+  { type: 'fishB', dir: 'l', cls: 'top-[88%] w-[36px] [animation-duration:58s] [animation-delay:-12s] [--fish-opacity:0.07]' },
+  // 小魚の群れ（近い高さ・同方向・少しずつ遅延をずらす）
+  { type: 'fishB', dir: 'r', cls: 'top-[46%] w-[22px] [animation-duration:42s] [animation-delay:-5s] [--fish-opacity:0.07]' },
+  { type: 'fishB', dir: 'r', cls: 'top-[50%] w-[20px] [animation-duration:42s] [animation-delay:-7s] [--fish-opacity:0.06]' },
+  { type: 'fishB', dir: 'r', cls: 'top-[53%] w-[24px] [animation-duration:42s] [animation-delay:-3s] [--fish-opacity:0.07]' },
+  { type: 'fishA', dir: 'r', cls: 'top-[72%] w-[30px] [animation-duration:48s] [animation-delay:-28s] [--fish-opacity:0.06]' },
+  // エイ（大きく・とても淡く・ゆっくり）
+  { type: 'ray', dir: 'r', cls: 'top-[34%] w-[110px] [animation-duration:82s] [animation-delay:-30s] [--fish-opacity:0.05]' },
+  // チョウチンアンコウ風（発光ルアー付き）
+  { type: 'angler', dir: 'l', cls: 'top-[78%] w-[56px] [animation-duration:66s] [animation-delay:-50s] [--fish-opacity:0.08]' },
 ]
 
-/** 左向きの魚シルエット（rは水平反転で右向きに）。 */
-function FishSilhouette({ flip }: { flip: boolean }) {
+// 漂うクラゲ
+const JELLIES = [
+  'left-[80%] w-[32px] [animation-duration:72s] [animation-delay:-30s] [--fish-opacity:0.08]',
+  'left-[22%] w-[24px] [animation-duration:88s] [animation-delay:-55s] [--fish-opacity:0.06]',
+]
+
+/** 細身の魚（左向き。flip で右向き）。 */
+function FishA({ flip }: { flip: boolean }) {
   return (
-    <svg
-      viewBox="0 0 64 28"
-      className={'h-auto w-full ' + (flip ? '-scale-x-100' : '')}
-      fill="currentColor"
-      aria-hidden="true"
-    >
+    <svg viewBox="0 0 64 28" className={'h-auto w-full ' + (flip ? '-scale-x-100' : '')} fill="currentColor" aria-hidden="true">
       <path d="M2 14C14 2 34 2 44 14 34 26 14 26 2 14Z" />
       <path d="M44 14 62 4 57 14 62 24Z" />
     </svg>
   )
 }
 
-/** クラゲのシルエット（傘＋触手）。 */
-function JellySilhouette() {
+/** 体高のある魚（背びれ付き。左向き、flip で右向き）。 */
+function FishB({ flip }: { flip: boolean }) {
+  return (
+    <svg viewBox="0 0 48 34" className={'h-auto w-full ' + (flip ? '-scale-x-100' : '')} fill="currentColor" aria-hidden="true">
+      <path d="M18 7 23 1 27 8Z" />
+      <path d="M4 18C10 7 26 5 34 11 40 15 40 21 34 25 26 31 10 29 4 18Z" />
+      <path d="M34 18 47 10 43 18 47 26Z" />
+    </svg>
+  )
+}
+
+/** エイ（翼を広げたシルエット。左向き基準、flip で右向き）。 */
+function Ray({ flip }: { flip: boolean }) {
+  return (
+    <svg viewBox="0 0 84 40" className={'h-auto w-full ' + (flip ? '-scale-x-100' : '')} fill="currentColor" aria-hidden="true">
+      <path d="M42 7C26 7 10 16 2 22 14 21 22 23 28 29 32 33 37 34 42 34 47 34 52 33 56 29 62 23 70 21 82 22 74 16 58 7 42 7Z" />
+      <path d="M41 32 43 32 42 40Z" />
+    </svg>
+  )
+}
+
+/** チョウチンアンコウ風（丸い体＋発光ルアー。左向き、flip で右向き）。 */
+function Angler({ flip }: { flip: boolean }) {
+  return (
+    <svg viewBox="0 0 52 36" className={'h-auto w-full ' + (flip ? '-scale-x-100' : '')} aria-hidden="true">
+      {/* 体・尾 */}
+      <g fill="currentColor">
+        <path d="M16 18C16 8 30 6 40 12 46 16 46 20 40 24 30 30 16 28 16 18Z" />
+        <path d="M40 18 51 12 48 18 51 24Z" />
+      </g>
+      {/* ルアーの竿 */}
+      <path d="M20 9C16 4 11 4 8 6" stroke="currentColor" strokeWidth="1.6" fill="none" strokeLinecap="round" />
+      {/* 発光する誘引突起（少し明るく） */}
+      <circle cx="7" cy="6" r="2.4" fill="#c6fff6" />
+    </svg>
+  )
+}
+
+/** クラゲ（傘＋触手）。 */
+function Jelly() {
   return (
     <svg viewBox="0 0 40 58" className="h-auto w-full" aria-hidden="true">
-      <path
-        d="M4 20C4 8 36 8 36 20 36 24 30 26 20 26 10 26 4 24 4 20Z"
-        fill="currentColor"
-      />
+      <path d="M4 20C4 8 36 8 36 20 36 24 30 26 20 26 10 26 4 24 4 20Z" fill="currentColor" />
       <g stroke="currentColor" strokeWidth="2" fill="none" strokeLinecap="round">
         <path d="M11 25c-2 8 0 14-1 22" />
         <path d="M20 26c0 9 2 14 0 22" />
@@ -57,24 +105,39 @@ function JellySilhouette() {
   )
 }
 
-/** 深海のアンビエント演出：上方からの光の帯、立ち上る泡、漂う魚・クラゲ。CSSのみで軽量。 */
+function Creature({ type, flip }: { type: CreatureType; flip: boolean }) {
+  switch (type) {
+    case 'fishB':
+      return <FishB flip={flip} />
+    case 'ray':
+      return <Ray flip={flip} />
+    case 'angler':
+      return <Angler flip={flip} />
+    default:
+      return <FishA flip={flip} />
+  }
+}
+
+/** 深海のアンビエント演出：光の帯、立ち上る泡、漂う魚・エイ・アンコウ・クラゲ。CSSのみで軽量。 */
 export function BackgroundFX() {
   return (
     <div aria-hidden className="pointer-events-none fixed inset-0 -z-10 overflow-hidden">
       {/* 光の帯（god rays） */}
       <div className="godrays absolute -top-1/3 left-1/2 h-[80vh] w-[140vw] -translate-x-1/2 blur animate-sheen" />
 
-      {/* 漂う魚 */}
-      {FISH.map((f, i) => (
-        <span key={i} className={`fish fish-${f.dir} ${f.cls}`}>
-          <FishSilhouette flip={f.dir === 'r'} />
+      {/* 漂う生物 */}
+      {CREATURES.map((c, i) => (
+        <span key={i} className={`fish fish-${c.dir} ${c.cls}`}>
+          <Creature type={c.type} flip={c.dir === 'r'} />
         </span>
       ))}
 
       {/* ゆっくり昇るクラゲ */}
-      <span className="jelly left-[80%] w-[32px] [animation-duration:72s] [animation-delay:-30s] [--fish-opacity:0.08]">
-        <JellySilhouette />
-      </span>
+      {JELLIES.map((cls, i) => (
+        <span key={i} className={'jelly ' + cls}>
+          <Jelly />
+        </span>
+      ))}
 
       {/* 立ち上る泡 */}
       {BUBBLES.map((cls, i) => (
