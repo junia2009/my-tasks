@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react'
+import { useMemo, useRef, useState } from 'react'
 import {
   DndContext,
   DragOverlay,
@@ -187,6 +187,8 @@ export default function App() {
   const [showFilters, setShowFilters] = useState(false)
   const [sortMode, setSortMode] = useState<SortMode>('manual')
   const [view, setView] = useState<'board' | 'agenda'>('board')
+  const [showMenu, setShowMenu] = useState(false)
+  const fileInputRef = useRef<HTMLInputElement>(null)
 
   const [modalOpen, setModalOpen] = useState(false)
   const [modalTask, setModalTask] = useState<Task | null>(null)
@@ -389,6 +391,55 @@ export default function App() {
     closeModal()
   }
 
+  // 全タスクを JSON ファイルとして書き出す（バックアップ／端末移行用）。
+  function handleExport() {
+    const payload = {
+      app: 'abyss-tasks',
+      version: 1,
+      exportedAt: new Date().toISOString(),
+      tasks,
+    }
+    const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' })
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = `abyss-tasks-${todayISO()}.json`
+    a.click()
+    URL.revokeObjectURL(url)
+    setShowMenu(false)
+  }
+
+  // JSON を読み込み、確認のうえ現在のデータを置き換える。
+  function handleImportFile(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0]
+    e.target.value = '' // 同じファイルを連続で選べるようにリセット
+    if (!file) return
+    const reader = new FileReader()
+    reader.onload = () => {
+      try {
+        const parsed: unknown = JSON.parse(String(reader.result))
+        const rawTasks =
+          Array.isArray(parsed) ? parsed : (parsed as { tasks?: unknown })?.tasks
+        if (!Array.isArray(rawTasks)) {
+          window.alert('タスクが見つかりませんでした。ファイル形式を確認してください。')
+          return
+        }
+        const imported = sanitizeTasks(rawTasks)
+        if (
+          !window.confirm(
+            `${imported.length} 件のタスクを読み込み、現在のデータを置き換えます。よろしいですか？`,
+          )
+        )
+          return
+        setTasks(imported)
+        setShowMenu(false)
+      } catch {
+        window.alert('読み込みに失敗しました。JSON ファイルを確認してください。')
+      }
+    }
+    reader.readAsText(file)
+  }
+
   function moveTask(task: Task, target: ColumnId) {
     setTasks((prev) => {
       const updated = prev.map((t) =>
@@ -446,22 +497,75 @@ export default function App() {
                 Task Management
               </h1>
             </div>
-            <button
-              type="button"
-              onClick={() => setShowFilters((v) => !v)}
-              aria-label="絞り込み"
-              className={
-                'flex h-10 w-10 items-center justify-center rounded-full border transition ' +
-                (showFilters || filtersActive
-                  ? 'border-lume/40 bg-lume/10 text-lume-soft shadow-glow-sm'
-                  : 'border-white/10 text-slate-300 active:bg-white/5')
-              }
-            >
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
-                <path d="M3 5h18M6 12h12M10 19h4" />
-              </svg>
-            </button>
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                onClick={() => setShowMenu((v) => !v)}
+                aria-label="メニュー"
+                className={
+                  'flex h-10 w-10 items-center justify-center rounded-full border transition ' +
+                  (showMenu
+                    ? 'border-lume/40 bg-lume/10 text-lume-soft shadow-glow-sm'
+                    : 'border-white/10 text-slate-300 active:bg-white/5')
+                }
+              >
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+                  <circle cx="12" cy="5" r="1.6" />
+                  <circle cx="12" cy="12" r="1.6" />
+                  <circle cx="12" cy="19" r="1.6" />
+                </svg>
+              </button>
+              <button
+                type="button"
+                onClick={() => setShowFilters((v) => !v)}
+                aria-label="絞り込み"
+                className={
+                  'flex h-10 w-10 items-center justify-center rounded-full border transition ' +
+                  (showFilters || filtersActive
+                    ? 'border-lume/40 bg-lume/10 text-lume-soft shadow-glow-sm'
+                    : 'border-white/10 text-slate-300 active:bg-white/5')
+                }
+              >
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+                  <path d="M3 5h18M6 12h12M10 19h4" />
+                </svg>
+              </button>
+            </div>
           </div>
+
+          {/* データメニュー（エクスポート／インポート） */}
+          {showMenu && (
+            <div className="mt-3 space-y-2.5 rounded-2xl border border-white/10 bg-white/[0.06] p-3 backdrop-blur-md animate-fade-in">
+              <p className="text-[11px] leading-relaxed text-slate-400">
+                データはこの端末内にのみ保存されます。バックアップや別端末への移行に。
+              </p>
+              <div className="flex gap-2">
+                <button
+                  type="button"
+                  onClick={handleExport}
+                  className="flex-1 rounded-xl border border-white/10 bg-white/5 px-3 py-2.5 text-sm font-medium text-slate-200 transition active:bg-white/10"
+                >
+                  ⬇ エクスポート
+                </button>
+                <button
+                  type="button"
+                  onClick={() => fileInputRef.current?.click()}
+                  className="flex-1 rounded-xl border border-lume/30 bg-lume/10 px-3 py-2.5 text-sm font-medium text-lume-soft transition active:bg-lume/20"
+                >
+                  ⬆ インポート
+                </button>
+              </div>
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept="application/json,.json"
+                aria-label="タスクをインポート"
+                title="タスクをインポート"
+                onChange={handleImportFile}
+                className="hidden"
+              />
+            </div>
+          )}
 
           {overdueCount > 0 && (
             <div className="mt-2 inline-flex items-center gap-1.5 rounded-full bg-rose-500/15 px-3 py-1 text-xs font-medium text-rose-300 ring-1 ring-rose-400/25">
