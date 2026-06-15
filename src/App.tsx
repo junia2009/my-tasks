@@ -198,6 +198,9 @@ export default function App() {
   const [selectedDay, setSelectedDay] = useState<string>(todayISO())
   const [showMenu, setShowMenu] = useState(false)
   const fileInputRef = useRef<HTMLInputElement>(null)
+  // 直近で削除したタスク（Undo 用）と自動非表示タイマー
+  const [recentlyDeleted, setRecentlyDeleted] = useState<Task | null>(null)
+  const undoTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   const [modalOpen, setModalOpen] = useState(false)
   const [modalTask, setModalTask] = useState<Task | null>(null)
@@ -411,8 +414,22 @@ export default function App() {
   }
 
   function handleDelete() {
-    if (modalTask) setTasks((prev) => prev.filter((t) => t.id !== modalTask.id))
+    if (!modalTask) return
+    const removed = modalTask
+    setTasks((prev) => prev.filter((t) => t.id !== removed.id))
     closeModal()
+    // 取り消しトーストを表示（数秒で自動的に消える）
+    setRecentlyDeleted(removed)
+    if (undoTimer.current) clearTimeout(undoTimer.current)
+    undoTimer.current = setTimeout(() => setRecentlyDeleted(null), 6000)
+  }
+
+  function undoDelete() {
+    if (!recentlyDeleted) return
+    const restored = recentlyDeleted
+    setTasks((prev) => (prev.some((t) => t.id === restored.id) ? prev : [...prev, restored]))
+    setRecentlyDeleted(null)
+    if (undoTimer.current) clearTimeout(undoTimer.current)
   }
 
   // 全タスクを JSON ファイルとして書き出す（バックアップ／端末移行用）。
@@ -905,6 +922,24 @@ export default function App() {
           <br />
           データはこの端末内にのみ保存されます
         </footer>
+
+        {/* 削除の取り消しトースト（FAB の左に表示） */}
+        {recentlyDeleted && (
+          <div className="absolute bottom-[calc(1.75rem+env(safe-area-inset-bottom))] left-0 right-20 z-40 animate-fade-in">
+            <div className="flex items-center justify-between gap-3 rounded-2xl border border-white/10 bg-abyss-800/90 px-4 py-2.5 text-sm text-slate-200 shadow-glow backdrop-blur-md">
+              <span className="min-w-0 truncate">
+                「{recentlyDeleted.title || '無題'}」を削除しました
+              </span>
+              <button
+                type="button"
+                onClick={undoDelete}
+                className="shrink-0 font-semibold text-lume-soft transition active:text-lume"
+              >
+                元に戻す
+              </button>
+            </div>
+          </div>
+        )}
 
         {/* 追加ボタン（FAB） */}
         <button
