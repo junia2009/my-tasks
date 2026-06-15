@@ -19,6 +19,7 @@ import {
 } from '@dnd-kit/sortable'
 import { BackgroundFX } from './components/BackgroundFX'
 import { CalendarView } from './components/CalendarView'
+import { StatsModal } from './components/StatsModal'
 import { TaskCard } from './components/TaskCard'
 import { TaskModal } from './components/TaskModal'
 import { useLocalStorage } from './useLocalStorage'
@@ -203,6 +204,7 @@ export default function App() {
   })
   const [selectedDay, setSelectedDay] = useState<string>(todayISO())
   const [showMenu, setShowMenu] = useState(false)
+  const [showStats, setShowStats] = useState(false)
   const fileInputRef = useRef<HTMLInputElement>(null)
   // 直近で削除したタスク（Undo 用）と自動非表示タイマー
   const [recentlyDeleted, setRecentlyDeleted] = useState<Task | null>(null)
@@ -545,6 +547,16 @@ export default function App() {
               </h1>
             </div>
             <div className="flex items-center gap-2">
+              <button
+                type="button"
+                onClick={() => setShowStats(true)}
+                aria-label="振り返り"
+                className="flex h-10 w-10 items-center justify-center rounded-full border border-white/10 text-slate-300 transition active:bg-white/5"
+              >
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+                  <path d="M5 21V11M12 21V5M19 21v-7" />
+                </svg>
+              </button>
               <button
                 type="button"
                 onClick={() => setShowMenu((v) => !v)}
@@ -967,6 +979,8 @@ export default function App() {
             onClose={closeModal}
           />
         )}
+
+        {showStats && <StatsModal tasks={tasks} onClose={() => setShowStats(false)} />}
       </div>
     </>
   )
