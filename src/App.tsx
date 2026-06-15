@@ -188,13 +188,19 @@ export default function App() {
     sanitize: sanitizeTasks,
   })
 
-  const [activeColumn, setActiveColumn] = useState<ColumnId>('todo')
+  const [activeColumn, setActiveColumn] = useLocalStorage<ColumnId>('abyss.activeColumn.v1', 'todo', {
+    sanitize: (r) => (COLUMN_IDS.includes(r as ColumnId) ? (r as ColumnId) : 'todo'),
+  })
   const [search, setSearch] = useState('')
   const [priorityFilter, setPriorityFilter] = useState<PriorityFilter>('all')
   const [tagFilter, setTagFilter] = useState<string>('all')
   const [showFilters, setShowFilters] = useState(false)
-  const [sortMode, setSortMode] = useState<SortMode>('manual')
-  const [view, setView] = useState<'board' | 'agenda' | 'calendar'>('board')
+  const [sortMode, setSortMode] = useLocalStorage<SortMode>('abyss.sort.v1', 'manual', {
+    sanitize: (r) => (SORT_MODES.includes(r as SortMode) ? (r as SortMode) : 'manual'),
+  })
+  const [view, setView] = useLocalStorage<'board' | 'agenda' | 'calendar'>('abyss.view.v1', 'board', {
+    sanitize: (r) => (r === 'agenda' || r === 'calendar' ? r : 'board'),
+  })
   const [selectedDay, setSelectedDay] = useState<string>(todayISO())
   const [showMenu, setShowMenu] = useState(false)
   const fileInputRef = useRef<HTMLInputElement>(null)
