@@ -110,3 +110,94 @@ input[type='date']::-webkit-date-and-time-value {
   animation-timing-function: linear;
   animation-iteration-count: infinite;
 }
+
+/* 深海を横切る魚・漂うクラゲのシルエット（生物発光の淡いシアン）。
+   duration / delay / --fish-opacity / 位置・サイズは各要素の arbitrary class で指定。 */
+.fish,
+.jelly {
+  position: absolute;
+  color: #7ff0e6;
+  filter: drop-shadow(0 0 6px rgba(52, 231, 211, 0.35));
+  animation-timing-function: linear;
+  animation-iteration-count: infinite;
+  will-change: transform, opacity;
+}
+.fish {
+  top: 0;
+}
+.fish-l {
+  animation-name: swim-left;
+}
+.fish-r {
+  animation-name: swim-right;
+}
+.jelly {
+  bottom: -12vh;
+  animation-name: drift;
+}
+
+@keyframes swim-left {
+  0% {
+    transform: translateX(110vw) translateY(0);
+    opacity: 0;
+  }
+  12% {
+    opacity: var(--fish-opacity, 0.1);
+  }
+  50% {
+    transform: translateX(40vw) translateY(2.5vh);
+  }
+  88% {
+    opacity: var(--fish-opacity, 0.1);
+  }
+  100% {
+    transform: translateX(-34vw) translateY(-1.5vh);
+    opacity: 0;
+  }
+}
+@keyframes swim-right {
+  0% {
+    transform: translateX(-34vw) translateY(0);
+    opacity: 0;
+  }
+  12% {
+    opacity: var(--fish-opacity, 0.1);
+  }
+  50% {
+    transform: translateX(40vw) translateY(-2.5vh);
+  }
+  88% {
+    opacity: var(--fish-opacity, 0.1);
+  }
+  100% {
+    transform: translateX(110vw) translateY(1.5vh);
+    opacity: 0;
+  }
+}
+@keyframes drift {
+  0% {
+    transform: translateY(0) translateX(0);
+    opacity: 0;
+  }
+  15% {
+    opacity: var(--fish-opacity, 0.1);
+  }
+  50% {
+    transform: translateY(-55vh) translateX(3vw);
+  }
+  85% {
+    opacity: var(--fish-opacity, 0.1);
+  }
+  100% {
+    transform: translateY(-110vh) translateX(-2vw);
+    opacity: 0;
+  }
+}
+
+/* モーション低減設定では生物を出さない（静止して中央に残るのを防ぐ） */
+@media (prefers-reduced-motion: reduce) {
+  .fish,
+  .jelly {
+    display: none;
+  }
+}
