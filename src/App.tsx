@@ -80,6 +80,15 @@ const COLUMN_IDS: ColumnId[] = ['todo', 'in-progress', 'done']
 const PRIORITIES: Priority[] = ['high', 'medium', 'low']
 const SORT_MODES: SortMode[] = ['manual', 'due', 'priority']
 
+/** 予定ビューの各バケット見出しの色。 */
+const AGENDA_HEADING: Record<string, string> = {
+  overdue: 'text-rose-300/80',
+  today: 'text-orange-300/80',
+  week: 'text-lume-soft/60',
+  later: 'text-slate-400/70',
+  none: 'text-slate-500/70',
+}
+
 /** done へ移動したら完了日時を確定（既存値は保持）、それ以外の列では未設定に戻す。 */
 function completedAtFor(target: ColumnId, existing?: number): number | undefined {
   if (target !== 'done') return undefined
@@ -177,6 +186,7 @@ export default function App() {
   const [tagFilter, setTagFilter] = useState<string>('all')
   const [showFilters, setShowFilters] = useState(false)
   const [sortMode, setSortMode] = useState<SortMode>('manual')
+  const [view, setView] = useState<'board' | 'agenda'>('board')
 
   const [modalOpen, setModalOpen] = useState(false)
   const [modalTask, setModalTask] = useState<Task | null>(null)
@@ -253,6 +263,51 @@ export default function App() {
     }
     return groups
   }, [activeColumn, visibleTasks])
+
+  // 予定（アジェンダ）ビュー：未完了タスクを期限で時間バケットに振り分ける。
+  const agendaBuckets = useMemo(() => {
+    if (view !== 'agenda') return [] as { key: string; label: string; items: Task[] }[]
+    const today = todayISO()
+    const in7 = dayKey(new Date(today + 'T00:00:00').getTime() + 7 * 86400000)
+    const buckets: Record<string, Task[]> = {
+      overdue: [],
+      today: [],
+      week: [],
+      later: [],
+      none: [],
+    }
+    tasks
+      .filter((t) => t.column !== 'done' && matches(t))
+      .forEach((t) => {
+        if (!t.dueDate) buckets.none.push(t)
+        else if (t.dueDate < today) buckets.overdue.push(t)
+        else if (t.dueDate === today) buckets.today.push(t)
+        else if (t.dueDate <= in7) buckets.week.push(t)
+        else buckets.later.push(t)
+      })
+    const byDue = (a: Task, b: Task) =>
+      a.dueDate.localeCompare(b.dueDate) || PRIORITY_RANK[a.priority] - PRIORITY_RANK[b.priority]
+    buckets.overdue.sort(byDue)
+    buckets.today.sort(byDue)
+    buckets.week.sort(byDue)
+    buckets.later.sort(byDue)
+    buckets.none.sort((a, b) => a.order - b.order)
+    const labels: [string, string][] = [
+      ['overdue', '期限切れ'],
+      ['today', '今日'],
+      ['week', '今後7日'],
+      ['later', 'それ以降'],
+      ['none', '期限なし'],
+    ]
+    return labels
+      .filter(([key]) => buckets[key].length > 0)
+      .map(([key, label]) => ({ key, label, items: buckets[key] }))
+  }, [view, tasks, matches])
+
+  const agendaCount = useMemo(
+    () => agendaBuckets.reduce((n, b) => n + b.items.length, 0),
+    [agendaBuckets],
+  )
 
   const activeTask = activeId ? tasks.find((t) => t.id === activeId) ?? null : null
   const filtersActive =
@@ -487,6 +542,35 @@ export default function App() {
             </div>
           )}
 
+          {/* ビュー切替：ボード / 予定（アジェンダ） */}
+          <div className="mt-3 flex gap-1 rounded-2xl border border-white/10 bg-white/[0.06] p-1 backdrop-blur-md">
+            {(
+              [
+                ['board', 'ボード'],
+                ['agenda', '予定'],
+              ] as ['board' | 'agenda', string][]
+            ).map(([v, lbl]) => {
+              const active = view === v
+              return (
+                <button
+                  key={v}
+                  type="button"
+                  onClick={() => setView(v)}
+                  className={
+                    'flex flex-1 items-center justify-center rounded-xl py-1.5 text-sm font-medium transition ' +
+                    (active
+                      ? 'bg-lume/15 text-lume-soft shadow-glow-sm ring-1 ring-lume/30'
+                      : 'text-slate-400 active:bg-white/5')
+                  }
+                >
+                  {lbl}
+                </button>
+              )
+            })}
+          </div>
+
+          {view === 'board' && (
+            <>
           {/* ステータス切替（セグメント） */}
           <div className="mt-3 flex gap-1 rounded-2xl border border-white/10 bg-white/[0.06] p-1 backdrop-blur-md">
             {COLUMNS.map((c) => {
@@ -538,6 +622,8 @@ export default function App() {
               ))}
             </div>
           )}
+            </>
+          )}
         </header>
 
         {/* タスク一覧（選択中の列） */}
@@ -549,21 +635,26 @@ export default function App() {
           onDragCancel={() => setActiveId(null)}
         >
           <main className="mt-3 flex min-h-0 flex-1 flex-col gap-2.5 overflow-y-auto pb-24">
-            {/* SortableContext は常時マウント（完了列でもカード側で無効化）。 */}
-            <SortableContext
-              items={visibleTasks.map((t) => t.id)}
-              strategy={verticalListSortingStrategy}
-            >
-              {activeColumn === 'done'
-                ? // 完了タイムライン：日付見出しごとにグルーピング（ドラッグ無効）
-                  timelineGroups.map((g) => (
-                    <div key={g.key} className="flex flex-col gap-2.5">
-                      <div className="flex items-center gap-2 px-1 pt-1 text-[11px] font-medium uppercase tracking-wider text-lume-soft/50">
-                        <span>{relativeDayLabel(g.key)}</span>
+            {/* SortableContext は常時マウント（アジェンダ／完了列はカード側で無効化）。 */}
+            {view === 'agenda' ? (
+              <>
+                <SortableContext
+                  items={agendaBuckets.flatMap((b) => b.items.map((t) => t.id))}
+                  strategy={verticalListSortingStrategy}
+                >
+                  {agendaBuckets.map((b) => (
+                    <div key={b.key} className="flex flex-col gap-2.5">
+                      <div
+                        className={
+                          'flex items-center gap-2 px-1 pt-1 text-[11px] font-medium uppercase tracking-wider ' +
+                          AGENDA_HEADING[b.key]
+                        }
+                      >
+                        <span>{b.label}</span>
                         <span className="h-px flex-1 bg-white/10" />
-                        <span className="text-slate-500">{g.items.length}</span>
+                        <span className="text-slate-500">{b.items.length}</span>
                       </div>
-                      {g.items.map((task) => (
+                      {b.items.map((task) => (
                         <TaskCard
                           key={task.id}
                           task={task}
@@ -573,25 +664,64 @@ export default function App() {
                         />
                       ))}
                     </div>
-                  ))
-                : visibleTasks.map((task) => (
-                    <TaskCard
-                      key={task.id}
-                      task={task}
-                      onClick={openEdit}
-                      onMove={moveTask}
-                      sortable={dndEnabled}
-                    />
                   ))}
-            </SortableContext>
+                </SortableContext>
 
-            {visibleTasks.length === 0 && (
-              <div className="mt-16 select-none text-center text-slate-500">
-                <div className="text-4xl">🪼</div>
-                <p className="mt-3 text-sm">
-                  {filtersActive ? '条件に合うタスクがありません' : 'ここにはまだ何も漂っていません'}
-                </p>
-              </div>
+                {agendaCount === 0 && (
+                  <div className="mt-16 select-none text-center text-slate-500">
+                    <div className="text-4xl">🗓️</div>
+                    <p className="mt-3 text-sm">
+                      {filtersActive ? '条件に合う予定がありません' : '期限のある予定はありません'}
+                    </p>
+                  </div>
+                )}
+              </>
+            ) : (
+              <>
+                <SortableContext
+                  items={visibleTasks.map((t) => t.id)}
+                  strategy={verticalListSortingStrategy}
+                >
+                  {activeColumn === 'done'
+                    ? // 完了タイムライン：日付見出しごとにグルーピング（ドラッグ無効）
+                      timelineGroups.map((g) => (
+                        <div key={g.key} className="flex flex-col gap-2.5">
+                          <div className="flex items-center gap-2 px-1 pt-1 text-[11px] font-medium uppercase tracking-wider text-lume-soft/50">
+                            <span>{relativeDayLabel(g.key)}</span>
+                            <span className="h-px flex-1 bg-white/10" />
+                            <span className="text-slate-500">{g.items.length}</span>
+                          </div>
+                          {g.items.map((task) => (
+                            <TaskCard
+                              key={task.id}
+                              task={task}
+                              onClick={openEdit}
+                              onMove={moveTask}
+                              sortable={false}
+                            />
+                          ))}
+                        </div>
+                      ))
+                    : visibleTasks.map((task) => (
+                        <TaskCard
+                          key={task.id}
+                          task={task}
+                          onClick={openEdit}
+                          onMove={moveTask}
+                          sortable={dndEnabled}
+                        />
+                      ))}
+                </SortableContext>
+
+                {visibleTasks.length === 0 && (
+                  <div className="mt-16 select-none text-center text-slate-500">
+                    <div className="text-4xl">🪼</div>
+                    <p className="mt-3 text-sm">
+                      {filtersActive ? '条件に合うタスクがありません' : 'ここにはまだ何も漂っていません'}
+                    </p>
+                  </div>
+                )}
+              </>
             )}
           </main>
 
