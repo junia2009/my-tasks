@@ -135,6 +135,25 @@ input[type='date']::-webkit-date-and-time-value {
   animation-name: drift;
 }
 
+/* チョウチンアンコウのルアー：明滅して光る誘引突起。 */
+.lure {
+  transform-box: fill-box;
+  transform-origin: center;
+  filter: drop-shadow(0 0 3px #bdfff7) drop-shadow(0 0 6px rgba(120, 245, 255, 0.7));
+  animation: lure-pulse 3.4s ease-in-out infinite;
+}
+@keyframes lure-pulse {
+  0%,
+  100% {
+    opacity: 0.6;
+    transform: scale(0.9);
+  }
+  50% {
+    opacity: 1;
+    transform: scale(1.18);
+  }
+}
+
 @keyframes swim-left {
   0% {
     transform: translateX(110vw) translateY(0);

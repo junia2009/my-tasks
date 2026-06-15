@@ -16,7 +16,7 @@ const BUBBLES = [
   'left-[48%] h-[4px] w-[4px] [animation-duration:32s] [animation-delay:16s] [--bubble-opacity:0.14]',
 ]
 
-type CreatureType = 'fishA' | 'fishB' | 'ray' | 'angler'
+type CreatureType = 'fishA' | 'fishB' | 'angler'
 
 // 横方向に漂う生物。dir で泳ぐ向き（l=左へ / r=右へ）。負の delay で起動時から
 // 画面内に散らばって見えるようにしている。共通スタイルは index.css の .fish。
@@ -31,10 +31,9 @@ const CREATURES: { type: CreatureType; dir: 'l' | 'r'; cls: string }[] = [
   { type: 'fishB', dir: 'r', cls: 'top-[50%] w-[20px] [animation-duration:42s] [animation-delay:-7s] [--fish-opacity:0.06]' },
   { type: 'fishB', dir: 'r', cls: 'top-[53%] w-[24px] [animation-duration:42s] [animation-delay:-3s] [--fish-opacity:0.07]' },
   { type: 'fishA', dir: 'r', cls: 'top-[72%] w-[30px] [animation-duration:48s] [animation-delay:-28s] [--fish-opacity:0.06]' },
-  // エイ（大きく・とても淡く・ゆっくり）
-  { type: 'ray', dir: 'r', cls: 'top-[34%] w-[110px] [animation-duration:82s] [animation-delay:-30s] [--fish-opacity:0.05]' },
-  // チョウチンアンコウ風（発光ルアー付き）
-  { type: 'angler', dir: 'l', cls: 'top-[78%] w-[56px] [animation-duration:66s] [animation-delay:-50s] [--fish-opacity:0.08]' },
+  { type: 'fishA', dir: 'r', cls: 'top-[34%] w-[50px] [animation-duration:56s] [animation-delay:-30s] [--fish-opacity:0.08]' },
+  // チョウチンアンコウ風（発光ルアー付き。やや見えやすく）
+  { type: 'angler', dir: 'l', cls: 'top-[78%] w-[58px] [animation-duration:66s] [animation-delay:-50s] [--fish-opacity:0.13]' },
 ]
 
 // 漂うクラゲ
@@ -64,16 +63,6 @@ function FishB({ flip }: { flip: boolean }) {
   )
 }
 
-/** エイ（翼を広げたシルエット。左向き基準、flip で右向き）。 */
-function Ray({ flip }: { flip: boolean }) {
-  return (
-    <svg viewBox="0 0 84 40" className={'h-auto w-full ' + (flip ? '-scale-x-100' : '')} fill="currentColor" aria-hidden="true">
-      <path d="M42 7C26 7 10 16 2 22 14 21 22 23 28 29 32 33 37 34 42 34 47 34 52 33 56 29 62 23 70 21 82 22 74 16 58 7 42 7Z" />
-      <path d="M41 32 43 32 42 40Z" />
-    </svg>
-  )
-}
-
 /** チョウチンアンコウ風（丸い体＋発光ルアー。左向き、flip で右向き）。 */
 function Angler({ flip }: { flip: boolean }) {
   return (
@@ -85,8 +74,11 @@ function Angler({ flip }: { flip: boolean }) {
       </g>
       {/* ルアーの竿 */}
       <path d="M20 9C16 4 11 4 8 6" stroke="currentColor" strokeWidth="1.6" fill="none" strokeLinecap="round" />
-      {/* 発光する誘引突起（少し明るく） */}
-      <circle cx="7" cy="6" r="2.4" fill="#c6fff6" />
+      {/* 発光する誘引突起：にじむ光暈＋明滅する芯（.lure で発光） */}
+      <g className="lure">
+        <circle cx="7" cy="6" r="5.5" fill="#7ff0e6" opacity="0.35" />
+        <circle cx="7" cy="6" r="2.6" fill="#eafffb" />
+      </g>
     </svg>
   )
 }
@@ -109,8 +101,6 @@ function Creature({ type, flip }: { type: CreatureType; flip: boolean }) {
   switch (type) {
     case 'fishB':
       return <FishB flip={flip} />
-    case 'ray':
-      return <Ray flip={flip} />
     case 'angler':
       return <Angler flip={flip} />
     default:
@@ -118,7 +108,7 @@ function Creature({ type, flip }: { type: CreatureType; flip: boolean }) {
   }
 }
 
-/** 深海のアンビエント演出：光の帯、立ち上る泡、漂う魚・エイ・アンコウ・クラゲ。CSSのみで軽量。 */
+/** 深海のアンビエント演出：光の帯、立ち上る泡、漂う魚・アンコウ・クラゲ。CSSのみで軽量。 */
 export function BackgroundFX() {
   return (
     <div aria-hidden className="pointer-events-none fixed inset-0 -z-10 overflow-hidden">
