@@ -7,6 +7,8 @@ interface Props {
   task: Task | null
   /** Column the new task will be created in (create mode only) */
   defaultColumn: ColumnId
+  /** Pre-filled due date for new tasks (create mode only), e.g. from the calendar */
+  defaultDueDate?: string
   onSave: (data: {
     title: string
     description: string
@@ -28,11 +30,18 @@ const inputClass =
 
 const labelClass = 'mb-1.5 block text-xs font-medium uppercase tracking-wide text-lume-soft/80'
 
-export function TaskModal({ task, defaultColumn, onSave, onDelete, onClose }: Props) {
+export function TaskModal({
+  task,
+  defaultColumn,
+  defaultDueDate = '',
+  onSave,
+  onDelete,
+  onClose,
+}: Props) {
   const [title, setTitle] = useState(task?.title ?? '')
   const [description, setDescription] = useState(task?.description ?? '')
   const [priority, setPriority] = useState<Priority>(task?.priority ?? 'medium')
-  const [dueDate, setDueDate] = useState(task?.dueDate ?? '')
+  const [dueDate, setDueDate] = useState(task?.dueDate ?? defaultDueDate)
   const [tagsInput, setTagsInput] = useState(task?.tags.join(', ') ?? '')
   const [column, setColumn] = useState<ColumnId>(task?.column ?? defaultColumn)
   const [subtasks, setSubtasks] = useState<Subtask[]>(task?.subtasks ?? [])
@@ -44,7 +53,7 @@ export function TaskModal({ task, defaultColumn, onSave, onDelete, onClose }: Pr
     title !== (task?.title ?? '') ||
     description !== (task?.description ?? '') ||
     priority !== (task?.priority ?? 'medium') ||
-    dueDate !== (task?.dueDate ?? '') ||
+    dueDate !== (task?.dueDate ?? defaultDueDate) ||
     tagsInput !== (task?.tags.join(', ') ?? '') ||
     column !== (task?.column ?? defaultColumn) ||
     JSON.stringify(subtasks) !== JSON.stringify(task?.subtasks ?? []) ||

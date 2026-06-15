@@ -34,6 +34,14 @@ export function dayKey(ts: number): string {
   return new Date(d.getTime() - tz).toISOString().slice(0, 10)
 }
 
+const WEEKDAYS_JA = ['日', '月', '火', '水', '木', '金', '土']
+
+/** 日付キー(YYYY-MM-DD)を「6月15日(月)」形式に。 */
+export function formatDayHeading(key: string): string {
+  const d = new Date(key + 'T00:00:00')
+  return `${d.getMonth() + 1}月${d.getDate()}日(${WEEKDAYS_JA[d.getDay()]})`
+}
+
 /** 日付キー(YYYY-MM-DD)を「今日 / 昨日 / M月D日」の見出しラベルに変換。 */
 export function relativeDayLabel(key: string): string {
   const today = todayISO()

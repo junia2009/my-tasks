@@ -18,6 +18,7 @@ import {
   verticalListSortingStrategy,
 } from '@dnd-kit/sortable'
 import { BackgroundFX } from './components/BackgroundFX'
+import { CalendarView } from './components/CalendarView'
 import { TaskCard } from './components/TaskCard'
 import { TaskModal } from './components/TaskModal'
 import { useLocalStorage } from './useLocalStorage'
@@ -32,7 +33,14 @@ import {
   type Subtask,
   type Task,
 } from './types'
-import { dayKey, dueStatus, nextDueDate, relativeDayLabel, todayISO } from './dateUtils'
+import {
+  dayKey,
+  dueStatus,
+  formatDayHeading,
+  nextDueDate,
+  relativeDayLabel,
+  todayISO,
+} from './dateUtils'
 
 const STORAGE_KEY = 'kanban.tasks.v1'
 
@@ -186,7 +194,8 @@ export default function App() {
   const [tagFilter, setTagFilter] = useState<string>('all')
   const [showFilters, setShowFilters] = useState(false)
   const [sortMode, setSortMode] = useState<SortMode>('manual')
-  const [view, setView] = useState<'board' | 'agenda'>('board')
+  const [view, setView] = useState<'board' | 'agenda' | 'calendar'>('board')
+  const [selectedDay, setSelectedDay] = useState<string>(todayISO())
   const [showMenu, setShowMenu] = useState(false)
   const fileInputRef = useRef<HTMLInputElement>(null)
 
@@ -309,6 +318,21 @@ export default function App() {
   const agendaCount = useMemo(
     () => agendaBuckets.reduce((n, b) => n + b.items.length, 0),
     [agendaBuckets],
+  )
+
+  // カレンダー：未完了＋フィルタ済みタスク（期限ドット表示の対象）
+  const calendarTasks = useMemo(
+    () => tasks.filter((t) => t.column !== 'done' && matches(t)),
+    [tasks, matches],
+  )
+
+  // 選択日に期限があるタスク（カレンダー下部の一覧）
+  const selectedDayTasks = useMemo(
+    () =>
+      calendarTasks
+        .filter((t) => t.dueDate === selectedDay)
+        .sort((a, b) => PRIORITY_RANK[a.priority] - PRIORITY_RANK[b.priority] || a.order - b.order),
+    [calendarTasks, selectedDay],
   )
 
   const activeTask = activeId ? tasks.find((t) => t.id === activeId) ?? null : null
@@ -652,7 +676,8 @@ export default function App() {
               [
                 ['board', 'ボード'],
                 ['agenda', '予定'],
-              ] as ['board' | 'agenda', string][]
+                ['calendar', 'カレンダー'],
+              ] as ['board' | 'agenda' | 'calendar', string][]
             ).map(([v, lbl]) => {
               const active = view === v
               return (
@@ -740,7 +765,39 @@ export default function App() {
         >
           <main className="mt-3 flex min-h-0 flex-1 flex-col gap-2.5 overflow-y-auto pb-24">
             {/* SortableContext は常時マウント（アジェンダ／完了列はカード側で無効化）。 */}
-            {view === 'agenda' ? (
+            {view === 'calendar' ? (
+              <>
+                <CalendarView
+                  tasks={calendarTasks}
+                  selectedDay={selectedDay}
+                  onSelectDay={setSelectedDay}
+                />
+                <div className="mt-1 flex items-center gap-2 px-1 pt-1 text-[11px] font-medium uppercase tracking-wider text-lume-soft/50">
+                  <span>{formatDayHeading(selectedDay)}</span>
+                  <span className="h-px flex-1 bg-white/10" />
+                  <span className="text-slate-500">{selectedDayTasks.length}</span>
+                </div>
+                <SortableContext
+                  items={selectedDayTasks.map((t) => t.id)}
+                  strategy={verticalListSortingStrategy}
+                >
+                  {selectedDayTasks.map((task) => (
+                    <TaskCard
+                      key={task.id}
+                      task={task}
+                      onClick={openEdit}
+                      onMove={moveTask}
+                      sortable={false}
+                    />
+                  ))}
+                </SortableContext>
+                {selectedDayTasks.length === 0 && (
+                  <p className="px-1 py-3 text-center text-xs text-slate-500">
+                    この日の予定はありません
+                  </p>
+                )}
+              </>
+            ) : view === 'agenda' ? (
               <>
                 <SortableContext
                   items={agendaBuckets.flatMap((b) => b.items.map((t) => t.id))}
@@ -862,7 +919,8 @@ export default function App() {
         {modalOpen && (
           <TaskModal
             task={modalTask}
-            defaultColumn={activeColumn}
+            defaultColumn={view === 'board' ? activeColumn : 'todo'}
+            defaultDueDate={view === 'calendar' ? selectedDay : ''}
             onSave={handleSave}
             onDelete={modalTask ? handleDelete : undefined}
             onClose={closeModal}
