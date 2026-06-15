@@ -122,9 +122,8 @@ input[type='date']::-webkit-date-and-time-value {
   animation-iteration-count: infinite;
   will-change: transform, opacity;
 }
-.fish {
-  top: 0;
-}
+/* 縦位置は各要素の top-[..] ユーティリティで指定する。ここで top を定義すると
+   カスケード後勝ちでユーティリティを潰し、全部が最上部に張り付くため定義しない。 */
 .fish-l {
   animation-name: swim-left;
 }
